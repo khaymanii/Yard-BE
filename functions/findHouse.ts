@@ -1,4 +1,8 @@
-import { DynamoDBClient, PutItemCommand, GetItemCommand } from "@aws-sdk/client-dynamodb";
+import {
+  DynamoDBClient,
+  PutItemCommand,
+  GetItemCommand,
+} from "@aws-sdk/client-dynamodb";
 
 // AWS Clients
 const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION });
@@ -10,7 +14,7 @@ function getConfig() {
     whatsappToken: process.env.WHATSAPP_TOKEN,
     gptKey: process.env.GPT_API_KEY,
     realtorKey: process.env.REALTOR_API_KEY,
-    verifyToken: process.env.VERIFY_TOKEN || "my_secret_token"
+    verifyToken: process.env.VERIFY_TOKEN || "my_secret_token",
   };
 }
 
@@ -24,7 +28,7 @@ async function extractIntentWithGPT(userText: string, gptKey: string) {
       method: "POST",
       headers: {
         Authorization: `Bearer ${gptKey}`,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         model: "openai/gpt-3.5-turbo",
@@ -47,14 +51,14 @@ JSON format:
   "property_type": "house" | "apartment" | "condo" | null,
   "features": string[],
   "limit": number | null
-}`
+}`,
           },
           {
             role: "user",
-            content: userText
-          }
-        ]
-      })
+            content: userText,
+          },
+        ],
+      }),
     }
   );
 
@@ -71,7 +75,7 @@ function normalizeSearchParams(params: any) {
     min_price: params.min_price ? Number(params.min_price) : null,
     property_type: params.property_type || null,
     features: Array.isArray(params.features) ? params.features : [],
-    limit: params.limit || 5
+    limit: params.limit || 5,
   };
 }
 
@@ -87,7 +91,7 @@ function parseUserMessage(text: string) {
     min_price: null,
     property_type: null,
     features: [],
-    limit: 5
+    limit: 5,
   };
 }
 
@@ -96,7 +100,7 @@ async function isMessageProcessed(messageId: string) {
   const result = await dynamoClient.send(
     new GetItemCommand({
       TableName: "ProcessedMessages",
-      Key: { messageId: { S: messageId } }
+      Key: { messageId: { S: messageId } },
     })
   );
   return !!result.Item;
@@ -109,8 +113,8 @@ async function markMessageProcessed(messageId: string) {
       Item: {
         messageId: { S: messageId },
         timestamp: { S: new Date().toISOString() },
-        ttl: { N: String(Math.floor(Date.now() / 1000) + 86400) }
-      }
+        ttl: { N: String(Math.floor(Date.now() / 1000) + 86400) },
+      },
     })
   );
 }
@@ -122,8 +126,8 @@ async function saveSearch(userId: string, params: any) {
       Item: {
         userId: { S: userId },
         timestamp: { S: new Date().toISOString() },
-        query: { S: JSON.stringify(params) }
-      }
+        query: { S: JSON.stringify(params) },
+      },
     })
   );
 }
@@ -134,26 +138,26 @@ async function sendWhatsAppMessage(to: string, message: string, config: any) {
       method: "POST",
       headers: {
         Authorization: `Bearer ${config.whatsappToken}`,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         messaging_product: "whatsapp",
         to,
         type: "text",
-        text: { body: message }
-      })
+        text: { body: message },
+      }),
     }
   );
-  
+
   // Add response checking
   const result = await response.json();
   console.log("WhatsApp API response:", result);
-  
+
   if (!response.ok) {
     console.error("WhatsApp API error:", result);
     throw new Error(`WhatsApp API failed: ${JSON.stringify(result)}`);
   }
-  
+
   return result;
 }
 
@@ -167,14 +171,17 @@ export const handler = async (event: any) => {
   console.log("Config loaded:", {
     whatsappPhoneId: config.whatsappPhoneId,
     whatsappToken: config.whatsappToken ? "SET" : "MISSING",
-    verifyToken: config.verifyToken
+    verifyToken: config.verifyToken,
   }); // <--- check env variables
 
   // Webhook verification
   if (event.httpMethod === "GET") {
     const q = event.queryStringParameters || {};
     console.log("GET query parameters:", q); // <--- log GET params
-    if (q["hub.mode"] === "subscribe" && q["hub.verify_token"] === config.verifyToken) {
+    if (
+      q["hub.mode"] === "subscribe" &&
+      q["hub.verify_token"] === config.verifyToken
+    ) {
       console.log("Webhook verified successfully");
       return { statusCode: 200, body: q["hub.challenge"] };
     }
@@ -219,6 +226,9 @@ export const handler = async (event: any) => {
   // GPT intent extraction with regex fallback
   let intent;
   try {
+    if (!config.gptKey) {
+      throw new Error("GPT API key not configured");
+    }
     intent = await extractIntentWithGPT(userText, config.gptKey);
     console.log("GPT intent extracted:", intent);
   } catch (e) {
@@ -248,11 +258,15 @@ export const handler = async (event: any) => {
   let houses = [];
 
   try {
+    if (!config.realtorKey) {
+      throw new Error("Realtor API key not configured");
+    }
+
     const requestBody: any = {
       location: searchParams.location,
       status: ["for_sale"],
       sort: { direction: "desc", field: "list_date" },
-      limit: searchParams.limit
+      limit: searchParams.limit,
     };
 
     if (searchParams.bedrooms) requestBody.beds_min = searchParams.bedrooms;
@@ -265,9 +279,9 @@ export const handler = async (event: any) => {
       headers: {
         "Content-Type": "application/json",
         "x-rapidapi-key": config.realtorKey,
-        "x-rapidapi-host": "realtor-search.p.rapidapi.com"
+        "x-rapidapi-host": "realtor-search.p.rapidapi.com",
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify(requestBody),
     });
 
     if (realtorRes.ok) {
@@ -276,12 +290,20 @@ export const handler = async (event: any) => {
       console.log("Realtor API response:", houses);
     } else {
       console.error("Realtor API returned error status:", realtorRes.status);
-      await sendWhatsAppMessage(from, "I'm having trouble searching right now. Please try again.", config);
+      await sendWhatsAppMessage(
+        from,
+        "I'm having trouble searching right now. Please try again.",
+        config
+      );
       return { statusCode: 200, body: "API error" };
     }
   } catch (err) {
     console.error("Realtor API fetch error:", err);
-    await sendWhatsAppMessage(from, "Search error occurred. Please try again.", config);
+    await sendWhatsAppMessage(
+      from,
+      "Search error occurred. Please try again.",
+      config
+    );
     return { statusCode: 200, body: "API error" };
   }
 
@@ -297,37 +319,44 @@ Need help? Just ask! 😊`;
   if (houses.length > 0) {
     const houseSummary = houses
       .slice(0, 5)
-      .map((h: any, idx: number) =>
-        `${idx + 1}. ${h.location?.address?.line || 'Address not available'}
-💰 $${h.list_price?.toLocaleString() || 'N/A'}
-🛏️ ${h.description?.beds || 'N/A'} beds | 🚿 ${h.description?.baths || 'N/A'} baths
-📏 ${h.description?.sqft?.toLocaleString() || 'N/A'} sqft`
+      .map(
+        (h: any, idx: number) =>
+          `${idx + 1}. ${h.location?.address?.line || "Address not available"}
+💰 $${h.list_price?.toLocaleString() || "N/A"}
+🛏️ ${h.description?.beds || "N/A"} beds | 🚿 ${
+            h.description?.baths || "N/A"
+          } baths
+📏 ${h.description?.sqft?.toLocaleString() || "N/A"} sqft`
       )
       .join("");
 
     console.log("House summary to send:", houseSummary);
 
     try {
-      const gptRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${config.gptKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "openai/gpt-3.5-turbo",
-          messages: [
-            {
-              role: "system",
-              content: "You are Yard, an AI-powered Housing Agent for WhatsApp. Format responses to be concise and mobile-friendly."
-            },
-            {
-              role: "user",
-              content: `Format these listings:\n\n${houseSummary}`
-            }
-          ]
-        })
-      });
+      const gptRes = await fetch(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${config.gptKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "openai/gpt-3.5-turbo",
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are Yard, an AI-powered Housing Agent for WhatsApp. Format responses to be concise and mobile-friendly.",
+              },
+              {
+                role: "user",
+                content: `Format these listings:\n\n${houseSummary}`,
+              },
+            ],
+          }),
+        }
+      );
 
       if (gptRes.ok) {
         const gptData = await gptRes.json();
@@ -348,4 +377,3 @@ Need help? Just ask! 😊`;
 
   return { statusCode: 200, body: "ok" };
 };
-
