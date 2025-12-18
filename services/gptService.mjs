@@ -38,7 +38,6 @@ export async function extractIntent(userText, gptKey) {
     "bathrooms": number | null,
     "max_price": number | null,
     "min_price": number | null,
-    "property_type": "house" | "apartment" | "condo" | null,
     "features": string[],
     "limit": number | null
   }`,
@@ -67,7 +66,7 @@ export async function formatResponse(userText, listings, gptKey) {
   🛏️ ${h.beds} beds | 🚿 ${h.baths} baths
   📏 ${h.sqft} sqft
   🏠 ${h.property_type}
-  Image: ${h.image}`
+  🖼️ ${h.image}`
         )
         .join("\n\n")
     : "";

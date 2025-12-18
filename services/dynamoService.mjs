@@ -46,8 +46,7 @@ export async function saveSearch(userId, params) {
 }
 
 export async function getListingsFromDB(searchParams) {
-  const { location, bedrooms, bathrooms, max_price, min_price, property_type } =
-    searchParams;
+  const { location, bedrooms, bathrooms, max_price, min_price } = searchParams;
 
   const result = await dynamoClient.send(
     new QueryCommand({
@@ -66,7 +65,6 @@ export async function getListingsFromDB(searchParams) {
     beds: Number(item.beds.N),
     baths: Number(item.baths.N),
     sqft: Number(item.sqft.N),
-    property_type: item.property_type.S,
     features: item.features?.SS || [],
     image: item.image.S,
   }));
@@ -75,8 +73,6 @@ export async function getListingsFromDB(searchParams) {
   if (bathrooms) listings = listings.filter((h) => h.baths >= bathrooms);
   if (max_price) listings = listings.filter((h) => h.price <= max_price);
   if (min_price) listings = listings.filter((h) => h.price >= min_price);
-  if (property_type)
-    listings = listings.filter((h) => h.property_type === property_type);
 
   return listings;
 }
