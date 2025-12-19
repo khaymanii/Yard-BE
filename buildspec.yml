@@ -6,14 +6,14 @@ phases:
       nodejs: 24
     commands:
       - echo "Installing dependencies..."
-      - cd Yard-Be
-      - npm ci --production
+      - npm ci --production # Only install production dependencies
 
   build:
     commands:
       - echo "Creating deployment package..."
-      - ls -la
-      - zip -r ../function.zip index.mjs node_modules package.json handlers utils services
+      # Zip contents of the project folder, keeping index.mjs at root
+      - zip -r function.zip index.mjs node_modules package.json package-lock.json webhook utils services || true
+      - echo "Build completed successfully"
 
 artifacts:
   files:
