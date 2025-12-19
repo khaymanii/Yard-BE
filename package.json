@@ -18,8 +18,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.952.0",
-    "axios": "^1.13.2"
+    "@aws-sdk/client-dynamodb": "^3.952.0"
   },
   "devDependencies": {
     "@types/node": "^25.0.2"
