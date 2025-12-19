@@ -5,15 +5,17 @@ phases:
     runtime-versions:
       nodejs: 24
     commands:
-      - npm ci
+      - echo "Installing dependencies..."
+      - npm ci --production # Only install production dependencies
 
   build:
     commands:
-      - zip -r function.zip .
+      - echo "Creating deployment package..."
+      # Zip only what's needed for Lambda
+      - zip -r function.zip index.mjs handlers/ utils/ services/ node_modules/ package.json package-lock.json
+      - echo "Build completed successfully"
 
 artifacts:
   files:
     - function.zip
-    - index.mjs
-    - config.mjs
-    - webhookHandler.mjs
+  name: lambda-deployment-package
