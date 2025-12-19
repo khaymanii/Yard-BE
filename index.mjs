@@ -1,6 +1,6 @@
 // index.mjs
-import { webhookHandler } from "./webhookHandler.mjs"; // adjust if your file is named differently
-import { getConfig } from "./config.mjs";
+import { webhookHandler } from "./handlers/webhookHandler.mjs"; // adjust if your file is named differently
+import { getConfig } from "./utils/config.mjs";
 
 export const handler = async (event) => {
   const config = getConfig();
