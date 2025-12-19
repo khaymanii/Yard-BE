@@ -6,16 +6,21 @@ phases:
       nodejs: 24
     commands:
       - echo "Installing dependencies..."
-      - npm ci --production # Only install production dependencies
+      - npm ci --production
 
   build:
     commands:
+      - echo "Listing project structure..."
+      - ls -la
+      - echo "Checking if folders exist..."
+      - ls -la handlers/ || echo "handlers folder missing!"
+      - ls -la utils/ || echo "utils folder missing!"
+      - ls -la services/ || echo "services folder missing!"
       - echo "Creating deployment package..."
-      # Zip only what's needed for Lambda
-      - zip -r function.zip index.mjs handlers/ utils/ services/ node_modules/ package.json package-lock.json
-      - echo "Build completed successfully"
+      - zip -r function.zip index.mjs handlers/ utils/ services/ node_modules/ package.json
+      - echo "Verifying zip contents..."
+      - unzip -l function.zip | head -30
 
 artifacts:
   files:
     - function.zip
-  name: lambda-deployment-package
