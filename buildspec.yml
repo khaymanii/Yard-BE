@@ -18,4 +18,3 @@ phases:
 artifacts:
   files:
     - function.zip
-  name: lambda-deployment-package
