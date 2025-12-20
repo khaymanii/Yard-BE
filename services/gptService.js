@@ -24,7 +24,7 @@ async function extractIntent(userText, gptKey) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openai/gpt-3.5-turbo",
+        model: "openai/gpt-5.1",
         temperature: 0,
         messages: [
           {
@@ -64,7 +64,7 @@ async function formatResponse(userText, listings, gptKey) {
     ? listings
         .map(
           (h, i) =>
-            `${i + 1}. ${h.address}, ${h.location}
+            `${i + 1}. ${h.listingId}, ${h.address}, ${h.location}
 💰 $${h.price.toLocaleString()}
 🛏️ ${h.beds} beds | 🚿 ${h.baths} baths
 📏 ${h.sqft} sqft
@@ -77,7 +77,23 @@ async function formatResponse(userText, listings, gptKey) {
   const messages = [
     {
       role: "system",
-      content: "You are a friendly WhatsApp real estate assistant.",
+      content: `
+You are a friendly WhatsApp real estate assistant. 
+Always format listings in a structured bullet point format where each field name is followed by a colon and its value, one per line. 
+Example:
+
+Address: 123 Main St
+Location: Lagos
+Price: $200,000
+Beds: 3
+Baths: 2
+Sqft: 1200
+Property Type: Apartment
+Image: https://example.com/image.jpg
+Listing ID: 12345
+
+Use this format for ALL listings you display.
+`,
     },
   ];
 
@@ -97,7 +113,7 @@ async function formatResponse(userText, listings, gptKey) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "openai/gpt-3.5-turbo",
+      model: "openai/gpt-5.1",
       temperature: 0.8,
       messages,
     }),
