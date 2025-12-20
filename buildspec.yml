@@ -11,7 +11,7 @@ phases:
   build:
     commands:
       - echo "Creating build and deployment package..."
-      # Zip contents of the project folder, keeping index.mjs at root
+      # Zip contents of the project folder, keeping index.js at root
       - zip -r function.zip index.js node_modules package.json package-lock.json webhook utils services
       - echo "Build completed successfully"
 
