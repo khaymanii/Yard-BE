@@ -5,17 +5,14 @@ phases:
     runtime-versions:
       nodejs: 24
     commands:
-      - echo "Installing dependencies..."
-      - npm ci --production # Only install production dependencies
-
-  build:
-    commands:
-      - echo "Creating build and deployment package..."
-      # Zip contents of the project folder, keeping index.js at root
-      - zip -r function.zip index.js node_modules package.json package-lock.json webhook utils services
-      - echo "Build completed successfully"
+      - npm ci --production
 
 artifacts:
   files:
-    - function.zip
-  discard-paths: yes
+    - index.js
+    - node_modules/**
+    - package.json
+    - package-lock.json
+    - webhook/**
+    - utils/**
+    - services/**
