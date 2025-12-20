@@ -82,24 +82,7 @@ Image: ${h.image}
   const messages = [
     {
       role: "system",
-      content: `You are a friendly WhatsApp real estate assistant.
-Always format listings in a structured bullet point format where each field name is followed by a colon and its value, one per line. 
-Example:
-
-Listing ID: 12345
-Address: 123 Main St
-Location: Lagos
-Price: $200,000
-Beds: 3
-Baths: 2
-Sqft: 1200
-Property Type: Apartment
-Image: https://example.com/image.jpg
-
-Use this format for ALL listings you display.
-Do not include emojis.
-If there are no listings to show, politely inform the user that no results were found based on their criteria.
-Always use the structured format for listings.`,
+      content: "You are a friendly WhatsApp real estate assistant.",
     },
   ];
 
