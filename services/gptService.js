@@ -64,12 +64,17 @@ async function formatResponse(userText, listings, gptKey) {
     ? listings
         .map(
           (h, i) =>
-            `${i + 1}. ${h.listingId}, ${h.address}, ${h.location}
-💰 $${h.price.toLocaleString()}
-🛏️ ${h.beds} beds | 🚿 ${h.baths} baths
-📏 ${h.sqft} sqft
-🏠 ${h.property_type}
-🖼️ ${h.image}`
+            `${i + 1}.
+Listing ID: ${h.listingId}
+Address: ${h.address}
+Location: ${h.location}
+Price: $${h.price.toLocaleString()}
+Beds: ${h.beds}
+Baths: ${h.baths}
+Sqft: ${h.sqft}
+Property Type: ${h.property_type}
+Image: ${h.image}
+`
         )
         .join("\n\n")
     : "";
@@ -82,6 +87,7 @@ You are a friendly WhatsApp real estate assistant.
 Always format listings in a structured bullet point format where each field name is followed by a colon and its value, one per line. 
 Example:
 
+Listing ID: 12345
 Address: 123 Main St
 Location: Lagos
 Price: $200,000
@@ -90,9 +96,9 @@ Baths: 2
 Sqft: 1200
 Property Type: Apartment
 Image: https://example.com/image.jpg
-Listing ID: 12345
 
 Use this format for ALL listings you display.
+And also do not include emojis for each field as shown in the example above.
 `,
     },
   ];
