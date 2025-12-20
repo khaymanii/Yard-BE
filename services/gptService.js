@@ -24,7 +24,7 @@ async function extractIntent(userText, gptKey) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openai/gpt-5.1",
+        model: "openai/gpt-3.5-turbo",
         temperature: 0,
         messages: [
           {
@@ -119,7 +119,7 @@ Always use the structured format for listings.`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "openai/gpt-5.1",
+      model: "openai/gpt-3.5-turbo",
       temperature: 0.8,
       messages,
     }),
