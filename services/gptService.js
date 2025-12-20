@@ -100,12 +100,7 @@ Image: https://example.com/image.jpg
 Use this format for ALL listings you display.
 And also do not include emojis for each field.
 If there are no listings to show, politely inform the user that no results were found based on their criteria.
-Here are the current listings you can refer to when responding to user queries:
-${houseText || "No listings available at the moment."}
-Respond to the user query:
-${userText}
 Remember to always use the structured format for listings.
-
 `,
     },
   ];
