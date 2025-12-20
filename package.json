@@ -1,0 +1,24 @@
+{
+  "name": "yard-be",
+  "version": "1.0.0",
+  "description": "Whatsapp AI Housing Agent",
+  "homepage": "https://github.com/khaymanii/Yard-BE#readme",
+  "bugs": {
+    "url": "https://github.com/khaymanii/Yard-BE/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/khaymanii/Yard-BE.git"
+  },
+  "license": "ISC",
+  "author": "Ken",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.956.0",
+    "@aws-sdk/lib-dynamodb": "^3.956.0"
+  }
+}
