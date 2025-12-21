@@ -42,6 +42,10 @@ async function webhookHandler(event, config) {
     return { statusCode: 200, body: "ok" };
   }
 
+  if (message.from === config.whatsappPhoneId) {
+    return { statusCode: 200, body: "ok" };
+  }
+
   // Idempotency check
   if (await isMessageProcessed(message.id)) {
     return { statusCode: 200, body: "ok" };
