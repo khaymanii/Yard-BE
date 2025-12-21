@@ -30,7 +30,26 @@ async function extractIntent(userText, gptKey) {
           {
             role: "system",
             content: `
-Return ONLY valid JSON:
+You are an intent extraction engine for a real estate search system.
+
+Return ONLY valid JSON and nothing else.
+
+Rules:
+- Do NOT explain.
+- Do NOT include markdown.
+- Do NOT infer values the user did not explicitly state.
+- If a value is not mentioned, return null.
+- Normalize all numbers to plain integers (no commas).
+- Prices are in Naira unless explicitly stated otherwise.
+- Convert phrases like "under", "below", "max" to max_price.
+- Convert phrases like "above", "from", "minimum" to min_price.
+- If the user is asking to see, list, find, show, search, or browse properties, is_search must be true.
+- If the message is conversational (greeting, thanks, unrelated), is_search must be false.
+- If is_search is true and no limit is mentioned, default limit to 3.
+- Features should be extracted as lowercase keywords (e.g. "parking", "pool", "furnished").
+- Location should be the most specific place mentioned. If unclear, return null.
+
+Return JSON in this exact shape:
 {
   "is_search": boolean,
   "location": string | null,
@@ -40,8 +59,10 @@ Return ONLY valid JSON:
   "min_price": number | null,
   "features": string[],
   "limit": number | null
-}`,
+}
+`,
           },
+
           { role: "user", content: userText },
         ],
       }),
