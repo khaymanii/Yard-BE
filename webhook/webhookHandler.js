@@ -1,16 +1,13 @@
 const { extractIncomingMessage } = require("../utils/parseUserMessage");
-
 const { normalizeSearchParams } = require("../utils/normalizeParams");
-
 const { extractIntent, formatResponse } = require("../services/gptService");
-
 const {
   isMessageProcessed,
   markMessageProcessed,
   getListingsFromDB,
   saveSearch,
+  getLastSearch, // 👈 make sure to import
 } = require("../services/dynamoService");
-
 const { sendWhatsAppMessage } = require("../services/whatsappService");
 
 async function webhookHandler(event, config) {
@@ -55,8 +52,21 @@ async function webhookHandler(event, config) {
 
   const userText = message.text.body.trim();
 
+  // --- Step 2: Load previous memory from DynamoDB ---
+  let previousIntent = null;
+  const lastSearch = await getLastSearch(message.from);
+
+  if (lastSearch) {
+    const age = Date.now() - new Date(lastSearch.timestamp).getTime();
+    if (age < 30 * 60 * 1000) {
+      // only keep last 30 mins
+      previousIntent = lastSearch.query;
+    }
+  }
+
+  // Pass previousIntent to GPT
   const intent = normalizeSearchParams(
-    await extractIntent(userText, config.gptKey)
+    await extractIntent(userText, config.gptKey, previousIntent)
   );
 
   let listings = [];

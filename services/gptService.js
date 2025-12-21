@@ -15,21 +15,12 @@ function extractLLMText(data) {
   return null;
 }
 
-async function extractIntent(userText, gptKey) {
+async function extractIntent(userText, gptKey, previousIntent = null) {
   try {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${gptKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-3.5-turbo",
-        temperature: 0,
-        messages: [
-          {
-            role: "system",
-            content: `
+    const messages = [
+      {
+        role: "system",
+        content: `
 You are an intent extraction engine for a real estate search system.
 
 Return ONLY valid JSON and nothing else.
@@ -61,10 +52,30 @@ Return JSON in this exact shape:
   "limit": number | null
 }
 `,
-          },
+      },
+    ];
 
-          { role: "user", content: userText },
-        ],
+    // Include previous search context if available
+    if (previousIntent) {
+      messages.push({
+        role: "system",
+        content: `Previous search context: ${JSON.stringify(previousIntent)}`,
+      });
+    }
+
+    // Include current user text
+    messages.push({ role: "user", content: userText });
+
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${gptKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "openai/gpt-3.5-turbo",
+        temperature: 0,
+        messages,
       }),
     });
 

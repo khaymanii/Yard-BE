@@ -50,6 +50,29 @@ async function saveSearch(userId, params) {
   );
 }
 
+async function getLastSearch(userId) {
+  const res = await dynamoClient.send(
+    new QueryCommand({
+      TableName: "UserSearchHistory",
+      KeyConditionExpression: "userId = :u",
+      ExpressionAttributeValues: {
+        ":u": { S: userId },
+      },
+      ScanIndexForward: false,
+      Limit: 1,
+    })
+  );
+
+  if (!res.Items || res.Items.length === 0) return null;
+
+  const item = res.Items[0];
+
+  return {
+    timestamp: item.timestamp.S,
+    query: JSON.parse(item.query.S),
+  };
+}
+
 async function getListingsFromDB(searchParams) {
   const { location, bedrooms, bathrooms, max_price, min_price, property_type } =
     searchParams;
@@ -95,4 +118,5 @@ module.exports = {
   markMessageProcessed,
   saveSearch,
   getListingsFromDB,
+  getLastSearch,
 };
