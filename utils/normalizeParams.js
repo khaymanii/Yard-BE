@@ -1,14 +1,16 @@
-function normalizeSearchParams(p = {}) {
+function normalizeSearchParams(intent = {}, previousIntent = {}) {
   return {
-    is_search: Boolean(p.is_search),
-    location: p.location || null,
-    bedrooms: p.bedrooms ? Number(p.bedrooms) : null,
-    bathrooms: p.bathrooms ? Number(p.bathrooms) : null,
-    max_price: p.max_price ? Number(p.max_price) : null,
-    min_price: p.min_price ? Number(p.min_price) : null,
-    property_type: p.property_type || null,
-    features: Array.isArray(p.features) ? p.features : [],
-    limit: p.limit || 5,
+    is_search: intent.is_search ?? previousIntent.is_search ?? false,
+    location: intent.location ?? previousIntent.location ?? null,
+    bedrooms: intent.bedrooms ?? previousIntent.bedrooms ?? null,
+    bathrooms: intent.bathrooms ?? previousIntent.bathrooms ?? null,
+    max_price: intent.max_price ?? previousIntent.max_price ?? null,
+    min_price: intent.min_price ?? previousIntent.min_price ?? null,
+    property_type: intent.property_type ?? previousIntent.property_type ?? null,
+    features: intent.features?.length
+      ? intent.features
+      : previousIntent.features ?? [],
+    limit: intent.limit ?? previousIntent.limit ?? 5,
   };
 }
 

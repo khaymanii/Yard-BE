@@ -6,7 +6,7 @@ const {
   markMessageProcessed,
   getListingsFromDB,
   saveSearch,
-  getLastSearch, // 👈 make sure to import
+  getLastSearch,
 } = require("../services/dynamoService");
 const { sendWhatsAppMessage } = require("../services/whatsappService");
 
@@ -39,6 +39,7 @@ async function webhookHandler(event, config) {
     return { statusCode: 200, body: "ok" };
   }
 
+  // Ignore messages sent by your own WhatsApp number
   if (message.from === config.whatsappPhoneId) {
     return { statusCode: 200, body: "ok" };
   }
@@ -52,30 +53,39 @@ async function webhookHandler(event, config) {
 
   const userText = message.text.body.trim();
 
-  // --- Step 2: Load previous memory from DynamoDB ---
+  // --- Load previous memory from DynamoDB ---
   let previousIntent = null;
   const lastSearch = await getLastSearch(message.from);
 
   if (lastSearch) {
     const age = Date.now() - new Date(lastSearch.timestamp).getTime();
     if (age < 30 * 60 * 1000) {
-      // only keep last 30 mins
+      // Keep last 30 mins only
       previousIntent = lastSearch.query;
     }
   }
 
-  // Pass previousIntent to GPT
-  const intent = normalizeSearchParams(
-    await extractIntent(userText, config.gptKey, previousIntent)
+  // --- Extract intent from GPT and merge with previous memory ---
+  const newIntent = await extractIntent(
+    userText,
+    config.gptKey,
+    previousIntent
   );
 
-  let listings = [];
+  // Merge previous intent only for missing values
+  const intent = normalizeSearchParams({
+    ...previousIntent,
+    ...newIntent,
+  });
 
+  // --- Fetch listings if it's a search ---
+  let listings = [];
   if (intent.is_search && intent.location) {
     listings = await getListingsFromDB(intent);
     await saveSearch(message.from, intent);
   }
 
+  // --- Generate reply ---
   const reply = await formatResponse(userText, listings, config.gptKey);
 
   await sendWhatsAppMessage(message.from, reply, config);
