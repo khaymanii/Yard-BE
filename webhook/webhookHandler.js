@@ -116,23 +116,31 @@ async function webhookHandler(event, config) {
 
   screen = FLOW[session.currentScreen];
 
-  // ---- END: run GPT search ----
+  // ---- END: fetch listings & GPT formatting ----
   if (screen.id === "END") {
     const intent = normalizeSearchParams({
       ...session.answers,
       is_search: true,
     });
 
+    // fetch listings from DB
     const listings = intent.location ? await getListingsFromDB(intent) : [];
 
-    const reply = await formatResponse("", listings, config.gptKey);
+    // build a descriptive query for GPT formatting
+    const userQuery = `Show me ${session.answers.bedrooms || "any"}-bedroom ${
+      session.answers.property_type || "property"
+    } in ${session.answers.location || "any location"}`;
+
+    // format response with GPT
+    const reply = await formatResponse(userQuery, listings, config.gptKey);
     await sendWhatsAppMessage(message.from, reply, config);
 
+    // save the search
     await saveSearch(message.from, intent);
 
     // reset session
     await saveUserSession(message.from, {
-      currentScreen: null,
+      currentScreen: "RECOMMEND",
       answers: {},
     });
 

@@ -92,6 +92,7 @@ Return JSON in this exact shape:
 }
 
 async function formatResponse(userText, listings, gptKey) {
+  // Build listings text if available
   const houseText = listings.length
     ? listings
         .map(
@@ -100,33 +101,40 @@ async function formatResponse(userText, listings, gptKey) {
 Listing ID: ${h.listingId}
 Address: ${h.address}
 Location: ${h.location}
-Price: $${h.price.toLocaleString()}
+Price: ₦${h.price.toLocaleString()}
 Beds: ${h.beds}
 Baths: ${h.baths}
 Sqft: ${h.sqft}
 Property Type: ${h.property_type}
-Image: ${h.image}
-`
+Image: ${h.image}`
         )
         .join("\n\n")
     : "";
 
+  // Prepare messages for GPT
   const messages = [
     {
       role: "system",
-      content: "You are a friendly WhatsApp real estate assistant.",
+      content: "You are a helpful and friendly WhatsApp real estate assistant.",
     },
   ];
 
   if (houseText) {
     messages.push({
       role: "system",
-      content: `Listings:\n${houseText}`,
+      content: `Here are the listings found based on the user's criteria:\n${houseText}`,
+    });
+  } else {
+    messages.push({
+      role: "system",
+      content: "No listings matched the user's search criteria.",
     });
   }
 
+  // Include the user's query for GPT context
   messages.push({ role: "user", content: userText });
 
+  // Call GPT
   const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -142,6 +150,7 @@ Image: ${h.image}
 
   const data = await res.json();
 
+  // Extract GPT response, fallback to houseText or default message
   return extractLLMText(data) || houseText || "Hey 👋 How can I help?";
 }
 
