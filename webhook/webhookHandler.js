@@ -132,7 +132,7 @@ async function webhookHandler(event, config) {
   await saveUserSession(message.from, safeSession);
 
   // ---- END: fetch listings & GPT formatting ----
-  if (session.currentScreen === "END" && normalizedInput === "submit") {
+  if (session.currentScreen === "END") {
     const intent = normalizeSearchParams({
       ...session.answers,
       is_search: true,
