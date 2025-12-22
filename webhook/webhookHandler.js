@@ -107,17 +107,8 @@ async function webhookHandler(event, config) {
     session.answers[screen.storeKey] = optionMap[normalizedInput];
   }
 
-  // ---- Move to next screen ----
-  session.currentScreen = screen.next?.[selectedOption] || screen.id;
-  await saveUserSession(message.from, {
-    currentScreen: session.currentScreen,
-    answers: session.answers,
-  });
-
-  screen = FLOW[session.currentScreen];
-
-  // ---- END: fetch listings & GPT formatting ----
-  if (screen?.id === "END" && normalizedInput === "submit") {
+  // ---- CHECK FOR SUBMIT BEFORE MOVING TO NEXT SCREEN ----
+  if (screen.id === "REVIEW" && normalizedInput === "submit") {
     const intent = normalizeSearchParams({
       ...session.answers,
       is_search: true,
@@ -132,17 +123,21 @@ async function webhookHandler(event, config) {
     await sendWhatsAppMessage(message.from, reply, config);
     await saveSearch(message.from, intent);
 
-    // reset session to RECOMMEND for next search
-    const sessionToSave = {
-      ...(session.currentScreen
-        ? { currentScreen: session.currentScreen }
-        : {}),
-      answers: session.answers || {},
-    };
-    await saveUserSession(message.from, sessionToSave);
+    // Reset session to LOCATION for next search
+    session = { currentScreen: "LOCATION", answers: {} };
+    await saveUserSession(message.from, session);
 
     return { statusCode: 200, body: "ok" };
   }
+
+  // ---- Move to next screen ----
+  session.currentScreen = screen.next?.[selectedOption] || screen.id;
+  await saveUserSession(message.from, {
+    currentScreen: session.currentScreen,
+    answers: session.answers,
+  });
+
+  screen = FLOW[session.currentScreen];
 
   // ---- Render next screen ----
   await sendWhatsAppMessage(
