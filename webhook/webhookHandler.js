@@ -6,96 +6,96 @@ const {
   markMessageProcessed,
   getListingsFromDB,
   saveSearch,
-  getLastSearch,
 } = require("../services/dynamoService");
 const { sendWhatsAppMessage } = require("../services/whatsappService");
 
+// Import flow config & session helpers
+const FLOW = require("../services/flow"); // your flow JSON transformed into JS object
+const { getUserSession, saveUserSession } = require("../services/flowSession");
+
 async function webhookHandler(event, config) {
-  // WhatsApp webhook verification
+  // --- WhatsApp webhook verification ---
   if (event.httpMethod === "GET") {
     const q = event.queryStringParameters || {};
-
     if (
       q["hub.mode"] === "subscribe" &&
       q["hub.verify_token"] === config.verifyToken
     ) {
-      return {
-        statusCode: 200,
-        body: q["hub.challenge"],
-      };
+      return { statusCode: 200, body: q["hub.challenge"] };
     }
-
-    return {
-      statusCode: 403,
-      body: "Verification failed",
-    };
+    return { statusCode: 403, body: "Verification failed" };
   }
 
-  // Incoming message
+  // --- Parse incoming message ---
   const payload = JSON.parse(event.body || "{}");
   const message = extractIncomingMessage(payload);
+  if (!message?.text) return { statusCode: 200, body: "ok" };
 
-  if (!message?.text) {
+  // Ignore messages from own number
+  if (message.from === config.whatsappPhoneId)
     return { statusCode: 200, body: "ok" };
-  }
-
-  // Ignore messages sent by your own WhatsApp number
-  if (message.from === config.whatsappPhoneId) {
-    return { statusCode: 200, body: "ok" };
-  }
 
   // Idempotency check
-  if (await isMessageProcessed(message.id)) {
+  if (await isMessageProcessed(message.id))
     return { statusCode: 200, body: "ok" };
-  }
-
   await markMessageProcessed(message.id);
 
   const userText = message.text.body.trim();
 
-  // --- Load previous memory from DynamoDB ---
-  let previousIntent = null;
-  const lastSearch = await getLastSearch(message.from);
+  // --- Load or initialize user session ---
+  let session = (await getUserSession(message.from)) || {
+    currentScreen: "RECOMMEND",
+    answers: {},
+  };
+  let currentScreen = FLOW[session.currentScreen];
 
-  if (lastSearch) {
-    const age = Date.now() - new Date(lastSearch.timestamp).getTime();
-    if (age < 30 * 60 * 1000) {
-      // Keep last 30 mins only
-      previousIntent = lastSearch.query;
+  // --- Handle user input for the current screen ---
+  if (currentScreen.inputType) {
+    // Save user's answer
+    session.answers[currentScreen.storeKey] = userText;
+
+    // Determine next screen
+    if (currentScreen.next[userText]) {
+      session.currentScreen = currentScreen.next[userText];
+    } else if (currentScreen.next.default) {
+      session.currentScreen = currentScreen.next.default;
     }
-  }
 
-  // --- Extract intent from GPT and merge with previous memory ---
-  const newIntent = await extractIntent(
-    userText,
-    config.gptKey,
-    previousIntent
-  );
-
-  // Merge previous intent only for missing values
-  const intent = normalizeSearchParams({
-    ...previousIntent,
-    ...newIntent,
-  });
-
-  // --- Fetch listings if it's a search ---
-  let listings = [];
-  if (intent.is_search && intent.location) {
-    listings = await getListingsFromDB(intent);
-    await saveSearch(message.from, intent);
+    // Save updated session
+    await saveUserSession(message.from, session);
+    currentScreen = FLOW[session.currentScreen];
   }
 
   // --- Generate reply ---
-  const reply = await formatResponse(userText, listings, config.gptKey);
+  let reply;
 
+  if (currentScreen.id === "END") {
+    // Run GPT search at final screen
+    const intent = normalizeSearchParams(session.answers);
+    const listings =
+      intent.is_search && intent.location
+        ? await getListingsFromDB(intent)
+        : [];
+    reply = await formatResponse("", listings, config.gptKey);
+
+    // Save search if applicable
+    if (intent.is_search) await saveSearch(message.from, intent);
+
+    // Reset session after completion
+    session = { currentScreen: "RECOMMEND", answers: {} };
+    await saveUserSession(message.from, session);
+  } else {
+    // If intermediate screen, show its text or dynamic function
+    reply =
+      typeof currentScreen.text === "function"
+        ? currentScreen.text(session.answers)
+        : currentScreen.text;
+  }
+
+  // --- Send reply ---
   await sendWhatsAppMessage(message.from, reply, config);
 
-  return {
-    statusCode: 200,
-    body: "ok",
-  };
+  return { statusCode: 200, body: "ok" };
 }
 
-module.exports = {
-  webhookHandler,
-};
+module.exports = { webhookHandler };
