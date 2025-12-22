@@ -5,8 +5,8 @@ const FLOW = {
     id: "RECOMMEND",
     text: "Find your next home 🏠\nAnswer a few questions and I’ll show you matching homes.",
     options: ["Start"],
-    next: { start: "LOCATION" }, // normalize lowercase
-    inputType: "command", // ✅ IMPORTANT
+    next: { start: "LOCATION" }, // normalized to lowercase
+    inputType: "command", // ensures we know it's a command
     storeKey: null,
   },
 
@@ -16,10 +16,10 @@ const FLOW = {
     options: ["Lagos", "Abuja", "Paris", "London"],
     storeKey: "location",
     next: {
-      Lagos: "PROPERTY_TYPE",
-      Abuja: "PROPERTY_TYPE",
-      Paris: "PROPERTY_TYPE",
-      London: "PROPERTY_TYPE",
+      lagos: "PROPERTY_TYPE",
+      abuja: "PROPERTY_TYPE",
+      paris: "PROPERTY_TYPE",
+      london: "PROPERTY_TYPE",
     },
   },
 
@@ -29,12 +29,12 @@ const FLOW = {
     options: ["House", "Apartment", "Villa", "Condo", "Duplex", "Other"],
     storeKey: "property_type",
     next: {
-      House: "BEDROOMS",
-      Apartment: "BEDROOMS",
-      Villa: "BEDROOMS",
-      Condo: "BEDROOMS",
-      Duplex: "BEDROOMS",
-      Other: "BEDROOMS",
+      house: "BEDROOMS",
+      apartment: "BEDROOMS",
+      villa: "BEDROOMS",
+      condo: "BEDROOMS",
+      duplex: "BEDROOMS",
+      other: "BEDROOMS",
     },
   },
 
@@ -59,7 +59,7 @@ const FLOW = {
       `Property Type: ${answers.property_type}\n` +
       `Bedrooms: ${answers.bedrooms}`,
     options: ["Submit"],
-    next: { Submit: "END" },
+    next: { submit: "END" }, // lowercase normalization
   },
 
   END: {

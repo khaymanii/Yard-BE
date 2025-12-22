@@ -64,17 +64,8 @@ async function webhookHandler(event, config) {
   // ---- Load session ----
   let session = await getUserSession(message.from);
 
-  // ---- Entry point ----
-  if (!session) {
-    if (!isGreeting(normalizedInput) && normalizedInput !== "start") {
-      await sendWhatsAppMessage(
-        message.from,
-        "Hello 👋\nType *Start* to find a home.",
-        config
-      );
-      return { statusCode: 200, body: "ok" };
-    }
-
+  // ---- Start fresh conversation ----
+  if (!session || isGreeting(normalizedInput) || normalizedInput === "start") {
     session = { currentScreen: "LOCATION", answers: {} };
     await saveUserSession(message.from, session);
 
@@ -112,12 +103,12 @@ async function webhookHandler(event, config) {
 
   // ---- Move to next screen ----
   session.currentScreen = screen.next[selectedOption];
-  await saveUserSession(message.from, { currentScreen: null, answers: {} });
+  await saveUserSession(message.from, session);
 
   screen = FLOW[session.currentScreen];
 
   // ---- END: fetch listings & GPT formatting ----
-  if (screen.id === "END" && normalizedInput === "submit") {
+  if (screen?.id === "END" && normalizedInput === "submit") {
     const intent = normalizeSearchParams({
       ...session.answers,
       is_search: true,
@@ -126,7 +117,7 @@ async function webhookHandler(event, config) {
     // fetch listings from DB
     const listings = intent.location ? await getListingsFromDB(intent) : [];
 
-    // build a descriptive query for GPT formatting
+    // build descriptive query for GPT
     const userQuery = `Show me ${session.answers.bedrooms || "any"}-bedroom ${
       session.answers.property_type || "property"
     } in ${session.answers.location || "any location"}`;
@@ -139,20 +130,19 @@ async function webhookHandler(event, config) {
     await saveSearch(message.from, intent);
 
     // reset session
-    await saveUserSession(message.from, {
-      currentScreen: "RECOMMEND",
-      answers: {},
-    });
+    await saveUserSession(message.from, { currentScreen: null, answers: {} });
 
     return { statusCode: 200, body: "ok" };
   }
 
   // ---- Render next screen ----
-  await sendWhatsAppMessage(
-    message.from,
-    renderScreen(screen, session.answers),
-    config
-  );
+  if (screen) {
+    await sendWhatsAppMessage(
+      message.from,
+      renderScreen(screen, session.answers),
+      config
+    );
+  }
 
   return { statusCode: 200, body: "ok" };
 }
