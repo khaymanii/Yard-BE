@@ -22,7 +22,6 @@ function isGreeting(text) {
 function renderScreen(screen, answers) {
   const text =
     typeof screen.text === "function" ? screen.text(answers) : screen.text;
-
   if (!screen.options || screen.options.length === 0) return text;
 
   return (
@@ -30,21 +29,6 @@ function renderScreen(screen, answers) {
     "\n\nReply with one option:\n" +
     screen.options.map((o) => `- ${o}`).join("\n")
   );
-}
-
-// ---- sanitize object for DynamoDB ----
-function sanitizeForDynamo(obj) {
-  const clean = {};
-  for (const key in obj) {
-    if (obj[key] !== undefined && obj[key] !== null) {
-      // Convert numbers properly
-      if (!isNaN(obj[key])) clean[key] = Number(obj[key]);
-      else clean[key] = obj[key];
-    }
-  }
-  // Ensure features is always an array
-  if (!Array.isArray(clean.features)) clean.features = [];
-  return clean;
 }
 
 // ---- handler ----
@@ -64,13 +48,10 @@ async function webhookHandler(event, config) {
   const payload = JSON.parse(event.body || "{}");
   const message = extractIncomingMessage(payload);
   if (!message?.text) return { statusCode: 200, body: "ok" };
-
   if (message.from === config.whatsappPhoneId)
     return { statusCode: 200, body: "ok" };
-
   if (await isMessageProcessed(message.id))
     return { statusCode: 200, body: "ok" };
-
   await markMessageProcessed(message.id);
 
   const userText = message.text.body.trim();
@@ -79,31 +60,32 @@ async function webhookHandler(event, config) {
   // ---- Load session ----
   let session = await getUserSession(message.from);
 
-  // ---- Entry point ----
-  if (!session) {
-    if (!isGreeting(normalizedInput) && normalizedInput !== "start") {
-      await sendWhatsAppMessage(
-        message.from,
-        "Hello 👋\nType *Start* to find a home.",
-        config
-      );
-      return { statusCode: 200, body: "ok" };
-    }
-
-    session = { currentScreen: "RECOMMEND", answers: {} };
+  // ---- Restart flow on greeting or "start" ----
+  if (!session || isGreeting(normalizedInput) || normalizedInput === "start") {
+    session = { currentScreen: "LOCATION", answers: {} };
     await saveUserSession(message.from, session);
 
-    const screen = FLOW.RECOMMEND;
+    const screen = FLOW.LOCATION;
     await sendWhatsAppMessage(
       message.from,
       renderScreen(screen, session.answers),
       config
     );
-
     return { statusCode: 200, body: "ok" };
   }
 
   let screen = FLOW[session.currentScreen];
+  if (!screen) {
+    // Safety fallback
+    session = { currentScreen: "LOCATION", answers: {} };
+    await saveUserSession(message.from, session);
+    await sendWhatsAppMessage(
+      message.from,
+      renderScreen(FLOW.LOCATION, session.answers),
+      config
+    );
+    return { statusCode: 200, body: "ok" };
+  }
 
   // ---- Validate input ----
   const optionMap = {};
@@ -120,14 +102,17 @@ async function webhookHandler(event, config) {
 
   const selectedOption = optionMap[normalizedInput];
 
-  // ---- Save answer ----
+  // ---- Save answer if applicable ----
   if (screen.storeKey) {
     session.answers[screen.storeKey] = selectedOption;
   }
 
   // ---- Move to next screen ----
-  session.currentScreen = screen.next[selectedOption] || null;
-  await saveUserSession(message.from, session);
+  session.currentScreen = screen.next?.[selectedOption] || screen.id;
+  await saveUserSession(message.from, {
+    currentScreen: session.currentScreen,
+    answers: session.answers,
+  });
 
   screen = FLOW[session.currentScreen];
 
@@ -137,40 +122,34 @@ async function webhookHandler(event, config) {
       ...session.answers,
       is_search: true,
     });
-
-    // fetch listings from DB
     const listings = intent.location ? await getListingsFromDB(intent) : [];
 
-    // build a descriptive query for GPT formatting
     const userQuery = `Show me ${session.answers.bedrooms || "any"}-bedroom ${
       session.answers.property_type || "property"
     } in ${session.answers.location || "any location"}`;
 
-    // format response with GPT
     const reply = await formatResponse(userQuery, listings, config.gptKey);
     await sendWhatsAppMessage(message.from, reply, config);
+    await saveSearch(message.from, intent);
 
-    // sanitize intent and save to DynamoDB
-    await saveSearch(message.from, sanitizeForDynamo(intent));
-
-    // reset session for new conversation
-    await saveUserSession(message.from, {
-      currentScreen: "RECOMMEND",
-      answers: {},
-    });
+    // reset session to RECOMMEND for next search
+    const sessionToSave = {
+      ...(session.currentScreen
+        ? { currentScreen: session.currentScreen }
+        : {}),
+      answers: session.answers || {},
+    };
+    await saveUserSession(message.from, sessionToSave);
 
     return { statusCode: 200, body: "ok" };
   }
 
   // ---- Render next screen ----
-  if (screen) {
-    await sendWhatsAppMessage(
-      message.from,
-      renderScreen(screen, session.answers),
-      config
-    );
-  }
-
+  await sendWhatsAppMessage(
+    message.from,
+    renderScreen(screen, session.answers),
+    config
+  );
   return { statusCode: 200, body: "ok" };
 }
 
