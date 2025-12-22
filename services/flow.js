@@ -3,11 +3,11 @@
 const FLOW = {
   RECOMMEND: {
     id: "RECOMMEND",
-    text:
-      "Find your next home 🏠\n" +
-      "Answer a few questions and I’ll show you matching homes.",
+    text: "Find your next home 🏠\nAnswer a few questions and I’ll show you matching homes.",
     options: ["Start"],
-    next: { Start: "LOCATION" },
+    next: { start: "LOCATION" }, // normalize lowercase
+    inputType: "command", // ✅ IMPORTANT
+    storeKey: null,
   },
 
   LOCATION: {

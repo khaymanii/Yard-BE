@@ -34,7 +34,7 @@ function renderScreen(screen, answers) {
 
 // ---- handler ----
 async function webhookHandler(event, config) {
-  // Verification
+  // ---- Verification ----
   if (event.httpMethod === "GET") {
     const q = event.queryStringParameters || {};
     if (
@@ -59,13 +59,14 @@ async function webhookHandler(event, config) {
   await markMessageProcessed(message.id);
 
   const userText = message.text.body.trim();
+  const normalizedInput = userText.toLowerCase();
 
-  // ---- load session ----
+  // ---- Load session ----
   let session = await getUserSession(message.from);
 
-  // ---- start flow only on greeting or "start" ----
+  // ---- Entry point ----
   if (!session) {
-    if (!isGreeting(userText) && userText.toLowerCase() !== "start") {
+    if (!isGreeting(normalizedInput) && normalizedInput !== "start") {
       await sendWhatsAppMessage(
         message.from,
         "Hello 👋\nType *Start* to find a home.",
@@ -74,33 +75,48 @@ async function webhookHandler(event, config) {
       return { statusCode: 200, body: "ok" };
     }
 
-    session = { currentScreen: "RECOMMEND", answers: {} };
+    session = { currentScreen: "LOCATION", answers: {} };
     await saveUserSession(message.from, session);
+
+    const screen = FLOW.LOCATION;
+    await sendWhatsAppMessage(
+      message.from,
+      renderScreen(screen, session.answers),
+      config
+    );
+
+    return { statusCode: 200, body: "ok" };
   }
 
   let screen = FLOW[session.currentScreen];
 
-  // ---- process user answer ----
-  if (screen.options.length > 0) {
-    if (!screen.options.includes(userText)) {
-      await sendWhatsAppMessage(
-        message.from,
-        renderScreen(screen, session.answers),
-        config
-      );
-      return { statusCode: 200, body: "ok" };
-    }
+  // ---- Validate input ----
+  const optionMap = {};
+  screen.options?.forEach((o) => (optionMap[o.toLowerCase()] = o));
 
-    if (screen.storeKey) {
-      session.answers[screen.storeKey] = userText;
-    }
-
-    session.currentScreen = screen.next[userText];
-    await saveUserSession(message.from, session);
-    screen = FLOW[session.currentScreen];
+  if (screen.options && !optionMap[normalizedInput]) {
+    await sendWhatsAppMessage(
+      message.from,
+      renderScreen(screen, session.answers),
+      config
+    );
+    return { statusCode: 200, body: "ok" };
   }
 
-  // ---- END: run search ----
+  const selectedOption = optionMap[normalizedInput];
+
+  // ---- Save answer ----
+  if (screen.storeKey) {
+    session.answers[screen.storeKey] = selectedOption;
+  }
+
+  // ---- Move to next screen ----
+  session.currentScreen = screen.next[selectedOption];
+  await saveUserSession(message.from, session);
+
+  screen = FLOW[session.currentScreen];
+
+  // ---- END: run GPT search ----
   if (screen.id === "END") {
     const intent = normalizeSearchParams({
       ...session.answers,
@@ -116,14 +132,14 @@ async function webhookHandler(event, config) {
 
     // reset session
     await saveUserSession(message.from, {
-      currentScreen: "RECOMMEND",
+      currentScreen: null,
       answers: {},
     });
 
     return { statusCode: 200, body: "ok" };
   }
 
-  // ---- show next question ----
+  // ---- Render next screen ----
   await sendWhatsAppMessage(
     message.from,
     renderScreen(screen, session.answers),
