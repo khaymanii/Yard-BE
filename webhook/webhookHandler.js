@@ -112,12 +112,12 @@ async function webhookHandler(event, config) {
 
   // ---- Move to next screen ----
   session.currentScreen = screen.next[selectedOption];
-  await saveUserSession(message.from, session);
+  await saveUserSession(message.from, { currentScreen: null, answers: {} });
 
   screen = FLOW[session.currentScreen];
 
   // ---- END: fetch listings & GPT formatting ----
-  if (screen.id === "END") {
+  if (screen.id === "END" && normalizedInput === "submit") {
     const intent = normalizeSearchParams({
       ...session.answers,
       is_search: true,
