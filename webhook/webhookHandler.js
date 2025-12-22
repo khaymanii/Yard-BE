@@ -112,8 +112,24 @@ async function webhookHandler(event, config) {
     const intent = normalizeSearchParams({
       ...session.answers,
       is_search: true,
+      // Keep location in Title Case to match DB format
+      location: session.answers.location,
+      // Normalize property_type to lowercase to match DB format
+      property_type: session.answers.property_type?.toLowerCase(),
+      // Parse bedrooms as number
+      bedrooms: session.answers.bedrooms
+        ? parseInt(session.answers.bedrooms)
+        : null,
     });
+
+    console.log("Search Intent:", JSON.stringify(intent));
+
     const listings = intent.location ? await getListingsFromDB(intent) : [];
+
+    console.log(`Listings Found: ${listings.length}`);
+    if (listings.length > 0) {
+      console.log("Sample Listing:", JSON.stringify(listings[0]));
+    }
 
     const userQuery = `Show me ${session.answers.bedrooms || "any"}-bedroom ${
       session.answers.property_type || "property"
