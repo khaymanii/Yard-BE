@@ -100,11 +100,11 @@ async function webhookHandler(event, config) {
     return { statusCode: 200, body: "ok" };
   }
 
-  const selectedOption = optionMap[normalizedInput];
+  const selectedOption = normalizedInput;
 
   // ---- Save answer if applicable ----
   if (screen.storeKey) {
-    session.answers[screen.storeKey] = selectedOption;
+    session.answers[screen.storeKey] = optionMap[normalizedInput];
   }
 
   // ---- Move to next screen ----
