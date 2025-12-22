@@ -107,7 +107,7 @@ async function webhookHandler(event, config) {
     session.answers[screen.storeKey] = optionMap[normalizedInput];
   }
 
-  // ---- CHECK FOR SUBMIT BEFORE MOVING TO NEXT SCREEN ----
+  // ---- HANDLE SUBMIT: fetch listings & GPT formatting ----
   if (screen.id === "REVIEW" && normalizedInput === "submit") {
     const intent = normalizeSearchParams({
       ...session.answers,

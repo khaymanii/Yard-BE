@@ -3,10 +3,10 @@
 const FLOW = {
   RECOMMEND: {
     id: "RECOMMEND",
-    text: "Looking for your next home? 🏠\nAnswer a few questions and I’ll show you matching homes.",
+    text: "Looking for your next home? 🏠\nAnswer a few questions and I'll show you matching homes.",
     options: ["Start"],
-    next: { start: "LOCATION" }, // normalized to lowercase
-    inputType: "command", // ensures we know it's a command
+    next: { start: "LOCATION" },
+    inputType: "command",
     storeKey: null,
   },
 
@@ -58,13 +58,7 @@ const FLOW = {
       `Property Type: ${answers.property_type}\n` +
       `Bedrooms: ${answers.bedrooms}`,
     options: ["Submit"],
-    next: { submit: "END" }, // lowercase normalization
-  },
-
-  END: {
-    id: "END",
-    text: "Thanks! Searching homes now...",
-    options: [],
+    // No 'next' property - webhook handles submit directly
   },
 };
 
