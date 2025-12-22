@@ -3,7 +3,7 @@
 const FLOW = {
   RECOMMEND: {
     id: "RECOMMEND",
-    text: "Find your next home 🏠\nAnswer a few questions and I’ll show you matching homes.",
+    text: "Looking for your next home? 🏠\nAnswer a few questions and I’ll show you matching homes.",
     options: ["Start"],
     next: { start: "LOCATION" }, // normalized to lowercase
     inputType: "command", // ensures we know it's a command
@@ -12,7 +12,7 @@ const FLOW = {
 
   LOCATION: {
     id: "LOCATION",
-    text: "Pick your preferred location:",
+    text: "Hello there, Pick your preferred location:",
     options: ["Lagos", "Abuja", "Paris", "London"],
     storeKey: "location",
     next: {
@@ -26,28 +26,27 @@ const FLOW = {
   PROPERTY_TYPE: {
     id: "PROPERTY_TYPE",
     text: "Choose property type:",
-    options: ["House", "Apartment", "Villa", "Condo", "Duplex", "Other"],
+    options: ["House", "Apartment", "Villa", "Duplex"],
     storeKey: "property_type",
     next: {
       house: "BEDROOMS",
       apartment: "BEDROOMS",
       villa: "BEDROOMS",
-      condo: "BEDROOMS",
       duplex: "BEDROOMS",
-      other: "BEDROOMS",
     },
   },
 
   BEDROOMS: {
     id: "BEDROOMS",
     text: "How many bedrooms?",
-    options: ["1", "2", "3", "4+"],
+    options: ["1", "2", "3", "4", "5"],
     storeKey: "bedrooms",
     next: {
       1: "REVIEW",
       2: "REVIEW",
       3: "REVIEW",
-      "4+": "REVIEW",
+      4: "REVIEW",
+      5: "REVIEW",
     },
   },
 
