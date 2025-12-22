@@ -32,6 +32,21 @@ function renderScreen(screen, answers) {
   );
 }
 
+// ---- sanitize object for DynamoDB ----
+function sanitizeForDynamo(obj) {
+  const clean = {};
+  for (const key in obj) {
+    if (obj[key] !== undefined && obj[key] !== null) {
+      // Convert numbers properly
+      if (!isNaN(obj[key])) clean[key] = Number(obj[key]);
+      else clean[key] = obj[key];
+    }
+  }
+  // Ensure features is always an array
+  if (!Array.isArray(clean.features)) clean.features = [];
+  return clean;
+}
+
 // ---- handler ----
 async function webhookHandler(event, config) {
   // ---- Verification ----
@@ -64,12 +79,21 @@ async function webhookHandler(event, config) {
   // ---- Load session ----
   let session = await getUserSession(message.from);
 
-  // ---- Start fresh conversation ----
-  if (!session || isGreeting(normalizedInput) || normalizedInput === "start") {
-    session = { currentScreen: "LOCATION", answers: {} };
+  // ---- Entry point ----
+  if (!session) {
+    if (!isGreeting(normalizedInput) && normalizedInput !== "start") {
+      await sendWhatsAppMessage(
+        message.from,
+        "Hello 👋\nType *Start* to find a home.",
+        config
+      );
+      return { statusCode: 200, body: "ok" };
+    }
+
+    session = { currentScreen: "RECOMMEND", answers: {} };
     await saveUserSession(message.from, session);
 
-    const screen = FLOW.LOCATION;
+    const screen = FLOW.RECOMMEND;
     await sendWhatsAppMessage(
       message.from,
       renderScreen(screen, session.answers),
@@ -102,7 +126,7 @@ async function webhookHandler(event, config) {
   }
 
   // ---- Move to next screen ----
-  session.currentScreen = screen.next[selectedOption];
+  session.currentScreen = screen.next[selectedOption] || null;
   await saveUserSession(message.from, session);
 
   screen = FLOW[session.currentScreen];
@@ -117,7 +141,7 @@ async function webhookHandler(event, config) {
     // fetch listings from DB
     const listings = intent.location ? await getListingsFromDB(intent) : [];
 
-    // build descriptive query for GPT
+    // build a descriptive query for GPT formatting
     const userQuery = `Show me ${session.answers.bedrooms || "any"}-bedroom ${
       session.answers.property_type || "property"
     } in ${session.answers.location || "any location"}`;
@@ -126,11 +150,14 @@ async function webhookHandler(event, config) {
     const reply = await formatResponse(userQuery, listings, config.gptKey);
     await sendWhatsAppMessage(message.from, reply, config);
 
-    // save the search
-    await saveSearch(message.from, intent);
+    // sanitize intent and save to DynamoDB
+    await saveSearch(message.from, sanitizeForDynamo(intent));
 
-    // reset session
-    await saveUserSession(message.from, { currentScreen: null, answers: {} });
+    // reset session for new conversation
+    await saveUserSession(message.from, {
+      currentScreen: "RECOMMEND",
+      answers: {},
+    });
 
     return { statusCode: 200, body: "ok" };
   }
