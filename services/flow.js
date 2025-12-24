@@ -128,7 +128,7 @@ const FLOW = {
 
   THANK_YOU: {
     id: "THANK_YOU",
-    text: "Thank you for using our service! Feel free to return anytime. 👋",
+    text: "Thank you for using Yard! Feel free to return anytime. 👋",
     options: [],
   },
 };
