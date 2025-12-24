@@ -3,7 +3,7 @@
 const FLOW = {
   RECOMMEND: {
     id: "RECOMMEND",
-    text: "Looking for your next home? 🏠\nAnswer a few questions and I'll show you matching homes.",
+    text: "*Looking for your next home?* 🏠\nAnswer a few questions and I'll show you matching homes.",
     options: ["Start"],
     next: { start: "LOCATION" },
     inputType: "command",
@@ -12,7 +12,7 @@ const FLOW = {
 
   LOCATION: {
     id: "LOCATION",
-    text: "Hello there, Pick your preferred location:",
+    text: "*Hello there!* 👋\n\nPick your preferred location:",
     options: ["Lagos", "Abuja", "Paris", "London"],
     storeKey: "location",
     next: {
@@ -25,7 +25,7 @@ const FLOW = {
 
   PROPERTY_TYPE: {
     id: "PROPERTY_TYPE",
-    text: "Choose property type:",
+    text: "*Choose property type:*",
     options: ["House", "Apartment", "Villa", "Duplex"],
     storeKey: "property_type",
     next: {
@@ -38,7 +38,7 @@ const FLOW = {
 
   BEDROOMS: {
     id: "BEDROOMS",
-    text: "How many bedrooms?",
+    text: "*How many bedrooms?*",
     options: ["1", "2", "3", "4", "5"],
     storeKey: "bedrooms",
     next: {
@@ -53,34 +53,35 @@ const FLOW = {
   REVIEW: {
     id: "REVIEW",
     text: (answers) =>
-      `Please review your search details:\n` +
+      `*Please review your search details:*\n` +
       `\n` +
-      `Location: ${answers.location}\n` +
-      `Property Type: ${answers.property_type}\n` +
-      `Bedrooms: ${answers.bedrooms}`,
+      `*Location:* ${answers.location}\n` +
+      `*Property Type:* ${answers.property_type}\n` +
+      `*Bedrooms:* ${answers.bedrooms}`,
     options: ["Submit"],
-    // No 'next' property - webhook handles submit directly
   },
 
   SELECT_LISTING: {
     id: "SELECT_LISTING",
-    text: "Which property would you like to schedule an inspection for? Reply with the listing number (e.g., 1, 2, 3):",
-    options: [], // Dynamic - handled manually in webhook
-    inputType: "number", // Marks this as free-input validation
+    text:
+      "*Select a property for inspection* 🏡\n\n" +
+      "_Reply with the listing number (e.g., 1, 2, 3)_",
+    options: [],
+    inputType: "number",
     storeKey: "selected_listing_index",
   },
 
   APPOINTMENT_DATE: {
     id: "APPOINTMENT_DATE",
-    text: "Great choice! 🏡\n\nWhen would you like to schedule your inspection?\n\nPlease choose a date:",
-    options: [], // Will be dynamically generated with next 7 days
-    inputType: "date", // Marks this as dynamic date validation
+    text: "*Great choice!* 🏡\n\nWhen would you like to schedule your inspection?\n\nPlease choose a date:",
+    options: [],
+    inputType: "date",
     storeKey: "appointment_date",
   },
 
   APPOINTMENT_TIME: {
     id: "APPOINTMENT_TIME",
-    text: "What time works best for you?",
+    text: "*What time works best for you?*",
     options: ["9:00 AM", "11:00 AM", "2:00 PM", "4:00 PM"],
     storeKey: "appointment_time",
     next: {
@@ -93,23 +94,26 @@ const FLOW = {
 
   CONTACT_INFO: {
     id: "CONTACT_INFO",
-    text: "Almost done! Please provide your full name:",
-    options: [], // Free text input
-    inputType: "text", // Marks this as free-text validation
+    text: "*Almost done!* ✍️\n\n_Please provide your full name:_",
+    options: [],
+    inputType: "text",
     storeKey: "contact_name",
   },
 
   CONFIRM_APPOINTMENT: {
     id: "CONFIRM_APPOINTMENT",
     text: (answers) =>
-      `Please confirm your inspection appointment:\n\n` +
-      `Property: ${answers.selected_listing_address || "Selected property"}\n` +
-      `Date: ${
+      `*Please confirm your inspection appointment:*\n\n` +
+      `🏠 *Property:* ${
+        answers.selected_listing_address || "Selected property"
+      }\n` +
+      `📅 *Date:* ${
         answers.appointment_date_display || answers.appointment_date
       }\n` +
-      `Time: ${answers.appointment_time}\n` +
-      `Name: ${answers.contact_name}\n\n` +
-      `Is this correct?`,
+      `⏰ *Time:* ${answers.appointment_time}\n` +
+      `👤 *Name:* ${answers.contact_name}\n\n` +
+      "_Is this correct?_",
+
     options: ["Confirm", "Cancel"],
     next: {
       cancel: "LOCATION",
@@ -118,7 +122,10 @@ const FLOW = {
 
   APPOINTMENT_CONFIRMED: {
     id: "APPOINTMENT_CONFIRMED",
-    text: "🎉 Your inspection appointment has been confirmed!\n\nYou'll receive a confirmation message shortly with all the details.\n\nWould you like to search for more properties?",
+    text:
+      "*🎉 Appointment Confirmed!*\n\n" +
+      "_You’ll receive a confirmation message shortly._\n\n" +
+      "*Would you like to search for more properties?*",
     options: ["Yes", "No"],
     next: {
       yes: "LOCATION",
