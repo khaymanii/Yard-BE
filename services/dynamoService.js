@@ -122,7 +122,8 @@ async function saveAppointment(appointmentData) {
         appointmentId: { S: `${appointmentData.userId}-${Date.now()}` },
         listingId: { S: appointmentData.listingId },
         address: { S: appointmentData.address },
-        date: { S: appointmentData.date },
+        dateDisplay: { S: appointmentData.dateDisplay }, // "Tue, Jan 23"
+        dateISO: { S: appointmentData.dateISO }, // "2025-01-23"
         time: { S: appointmentData.time },
         name: { S: appointmentData.name },
         timestamp: { S: appointmentData.timestamp },

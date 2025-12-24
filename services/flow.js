@@ -54,24 +54,26 @@ const FLOW = {
     id: "REVIEW",
     text: (answers) =>
       `Please review your search details:\n` +
-      `\n` +
       `Location: ${answers.location}\n` +
       `Property Type: ${answers.property_type}\n` +
       `Bedrooms: ${answers.bedrooms}`,
     options: ["Submit"],
+    // No 'next' property - webhook handles submit directly
   },
 
   SELECT_LISTING: {
     id: "SELECT_LISTING",
     text: "Which property would you like to schedule an inspection for? Reply with the listing number (e.g., 1, 2, 3):",
-    options: [],
+    options: [], // Dynamic - handled manually in webhook
+    inputType: "number", // Marks this as free-input validation
     storeKey: "selected_listing_index",
   },
 
   APPOINTMENT_DATE: {
     id: "APPOINTMENT_DATE",
     text: "Great choice! 🏡\n\nWhen would you like to schedule your inspection?\n\nPlease choose a date:",
-    options: [],
+    options: [], // Will be dynamically generated with next 7 days
+    inputType: "date", // Marks this as dynamic date validation
     storeKey: "appointment_date",
   },
 
@@ -92,6 +94,7 @@ const FLOW = {
     id: "CONTACT_INFO",
     text: "Almost done! Please provide your full name:",
     options: [], // Free text input
+    inputType: "text", // Marks this as free-text validation
     storeKey: "contact_name",
   },
 
@@ -100,13 +103,14 @@ const FLOW = {
     text: (answers) =>
       `Please confirm your inspection appointment:\n\n` +
       `Property: ${answers.selected_listing_address || "Selected property"}\n` +
-      `Date: ${answers.appointment_date}\n` +
+      `Date: ${
+        answers.appointment_date_display || answers.appointment_date
+      }\n` +
       `Time: ${answers.appointment_time}\n` +
       `Name: ${answers.contact_name}\n\n` +
       `Is this correct?`,
     options: ["Confirm", "Cancel"],
     next: {
-      confirm: "APPOINTMENT_CONFIRMED",
       cancel: "LOCATION",
     },
   },
