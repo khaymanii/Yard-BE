@@ -113,10 +113,30 @@ async function getListingsFromDB(searchParams) {
   return listings;
 }
 
+async function saveAppointment(appointmentData) {
+  await dynamoClient.send(
+    new PutItemCommand({
+      TableName: "Appointments",
+      Item: {
+        userId: { S: appointmentData.userId },
+        appointmentId: { S: `${appointmentData.userId}-${Date.now()}` },
+        listingId: { S: appointmentData.listingId },
+        address: { S: appointmentData.address },
+        date: { S: appointmentData.date },
+        time: { S: appointmentData.time },
+        name: { S: appointmentData.name },
+        timestamp: { S: appointmentData.timestamp },
+        status: { S: "pending" },
+      },
+    })
+  );
+}
+
 module.exports = {
   isMessageProcessed,
   markMessageProcessed,
   saveSearch,
   getListingsFromDB,
   getLastSearch,
+  saveAppointment,
 };

@@ -53,13 +53,78 @@ const FLOW = {
   REVIEW: {
     id: "REVIEW",
     text: (answers) =>
-      `Please review your search details;\n` +
+      `Please review your search details:\n` +
       `\n` +
       `Location: ${answers.location}\n` +
       `Property Type: ${answers.property_type}\n` +
       `Bedrooms: ${answers.bedrooms}`,
     options: ["Submit"],
-    // No 'next' property - webhook handles submit directly
+  },
+
+  SELECT_LISTING: {
+    id: "SELECT_LISTING",
+    text: "Which property would you like to schedule an inspection for? Reply with the listing number (e.g., 1, 2, 3):",
+    options: [],
+    storeKey: "selected_listing_index",
+  },
+
+  APPOINTMENT_DATE: {
+    id: "APPOINTMENT_DATE",
+    text: "Great choice! 🏡\n\nWhen would you like to schedule your inspection?\n\nPlease choose a date:",
+    options: [],
+    storeKey: "appointment_date",
+  },
+
+  APPOINTMENT_TIME: {
+    id: "APPOINTMENT_TIME",
+    text: "What time works best for you?",
+    options: ["9:00 AM", "11:00 AM", "2:00 PM", "4:00 PM"],
+    storeKey: "appointment_time",
+    next: {
+      "9:00 am": "CONTACT_INFO",
+      "11:00 am": "CONTACT_INFO",
+      "2:00 pm": "CONTACT_INFO",
+      "4:00 pm": "CONTACT_INFO",
+    },
+  },
+
+  CONTACT_INFO: {
+    id: "CONTACT_INFO",
+    text: "Almost done! Please provide your full name:",
+    options: [], // Free text input
+    storeKey: "contact_name",
+  },
+
+  CONFIRM_APPOINTMENT: {
+    id: "CONFIRM_APPOINTMENT",
+    text: (answers) =>
+      `Please confirm your inspection appointment:\n\n` +
+      `Property: ${answers.selected_listing_address || "Selected property"}\n` +
+      `Date: ${answers.appointment_date}\n` +
+      `Time: ${answers.appointment_time}\n` +
+      `Name: ${answers.contact_name}\n\n` +
+      `Is this correct?`,
+    options: ["Confirm", "Cancel"],
+    next: {
+      confirm: "APPOINTMENT_CONFIRMED",
+      cancel: "LOCATION",
+    },
+  },
+
+  APPOINTMENT_CONFIRMED: {
+    id: "APPOINTMENT_CONFIRMED",
+    text: "🎉 Your inspection appointment has been confirmed!\n\nYou'll receive a confirmation message shortly with all the details.\n\nWould you like to search for more properties?",
+    options: ["Yes", "No"],
+    next: {
+      yes: "LOCATION",
+      no: "THANK_YOU",
+    },
+  },
+
+  THANK_YOU: {
+    id: "THANK_YOU",
+    text: "Thank you for using our service! Feel free to return anytime. 👋",
+    options: [],
   },
 };
 
