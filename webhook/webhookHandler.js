@@ -90,12 +90,12 @@ async function webhookHandler(event, config) {
   );
 
   // ---- Manual restart command ----
-  if (normalizedInput === "restart") {
+  if (normalizedInput === "restart" || normalizedInput === "reset") {
     session = { currentScreen: "LOCATION", answers: {} };
     await saveUserSession(message.from, session);
     await sendWhatsAppMessage(
       message.from,
-      renderScreen(FLOW.LOCATION, {}),
+      "Session restarted! " + renderScreen(FLOW.LOCATION, {}),
       config
     );
     return { statusCode: 200, body: "ok" };
@@ -159,6 +159,22 @@ async function webhookHandler(event, config) {
 
   // ---- Handle listing selection (number input) ----
   if (screen.id === "SELECT_LISTING") {
+    // Safety check: if no listings in session, restart flow
+    if (!session.listings || session.listings.length === 0) {
+      console.log(
+        "SELECT_LISTING but no listings in session - restarting flow"
+      );
+      session = { currentScreen: "LOCATION", answers: {} };
+      await saveUserSession(message.from, session);
+      await sendWhatsAppMessage(
+        message.from,
+        "Session expired. Let's start over!\n\n" +
+          renderScreen(FLOW.LOCATION, {}),
+        config
+      );
+      return { statusCode: 200, body: "ok" };
+    }
+
     const listingIndex = parseInt(userText) - 1;
 
     console.log("Listing selection - userText:", userText);
