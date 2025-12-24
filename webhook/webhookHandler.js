@@ -1,9 +1,6 @@
 const { extractIncomingMessage } = require("../utils/parseUserMessage");
 const { normalizeSearchParams } = require("../utils/normalizeParams");
 const { formatResponse } = require("../services/gptService");
-const { sendWhatsAppMessage } = require("../services/whatsappService");
-const FLOW = require("../services/flow");
-const { getUserSession, saveUserSession } = require("../services/flowSession");
 const {
   isMessageProcessed,
   markMessageProcessed,
@@ -11,6 +8,10 @@ const {
   saveSearch,
   saveAppointment,
 } = require("../services/dynamoService");
+const { sendWhatsAppMessage } = require("../services/whatsappService");
+
+const FLOW = require("../services/flow");
+const { getUserSession, saveUserSession } = require("../services/flowSession");
 
 // ---- helpers ----
 function isGreeting(text) {
@@ -78,6 +79,15 @@ async function webhookHandler(event, config) {
 
   // ---- Load session ----
   let session = await getUserSession(message.from);
+
+  console.log(
+    "Current session:",
+    JSON.stringify({
+      currentScreen: session?.currentScreen,
+      hasListings: !!session?.listings,
+      listingsCount: session?.listings?.length,
+    })
+  );
 
   // ---- Manual restart command ----
   if (normalizedInput === "restart") {
@@ -151,20 +161,32 @@ async function webhookHandler(event, config) {
   if (screen.id === "SELECT_LISTING") {
     const listingIndex = parseInt(userText) - 1;
 
+    console.log("Listing selection - userText:", userText);
+    console.log("Listing selection - listingIndex:", listingIndex);
+    console.log(
+      "Listing selection - session.listings length:",
+      session.listings?.length
+    );
+
     if (
       isNaN(listingIndex) ||
       listingIndex < 0 ||
-      listingIndex >= (session.listings?.length || 0)
+      !session.listings ||
+      listingIndex >= session.listings.length
     ) {
       await sendWhatsAppMessage(
         message.from,
-        "Invalid selection. Please enter a valid listing number (e.g., 1, 2, 3).",
+        `Invalid selection. Please enter a number between 1 and ${
+          session.listings?.length || 0
+        }.`,
         config
       );
       return { statusCode: 200, body: "ok" };
     }
 
     const selectedListing = session.listings[listingIndex];
+    console.log("Selected listing:", selectedListing);
+
     session.answers.selected_listing_index = listingIndex;
     session.answers.selected_listing_id = selectedListing.listingId;
     session.answers.selected_listing_address = selectedListing.address;

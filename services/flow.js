@@ -54,6 +54,7 @@ const FLOW = {
     id: "REVIEW",
     text: (answers) =>
       `Please review your search details:\n` +
+      `\n` +
       `Location: ${answers.location}\n` +
       `Property Type: ${answers.property_type}\n` +
       `Bedrooms: ${answers.bedrooms}`,
