@@ -20,7 +20,7 @@ const FLOW = {
       "• Type 'restart' - Start over\n" +
       "• Type 'menu' - Main menu\n" +
       "• Type 'cancel' - Cancel current action\n\n" +
-      "Need human assistance? Contact: infoyardhelp@yard.com",
+      "Need human assistance? Contact: infoyardhelp@gmail.com",
     options: ["1. Back to Menu"],
     numbered: true,
     next: {
