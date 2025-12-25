@@ -213,6 +213,17 @@ async function webhookHandler(event, config) {
     }
 
     const selectedListing = session.listings[listingIndex];
+
+    console.log(
+      "Selected listing details:",
+      JSON.stringify({
+        userNumber,
+        listingIndex,
+        listingId: selectedListing.listingId,
+        address: selectedListing.address,
+      })
+    );
+
     session.answers.selected_listing_index = listingIndex;
     session.answers.selected_listing_id = selectedListing.listingId;
     session.answers.selected_listing_address = selectedListing.address;
@@ -332,13 +343,41 @@ async function webhookHandler(event, config) {
 
     await saveAppointment(appointmentData);
 
+    // Keep answers for the confirmation screen display
     session.currentScreen = "APPOINTMENT_CONFIRMED";
-    session.answers = {}; // Clear answers after booking
     await saveUserSession(message.from, session);
 
     await sendWhatsAppMessage(
       message.from,
       renderScreen(FLOW.APPOINTMENT_CONFIRMED, session.answers),
+      config
+    );
+
+    return { statusCode: 200, body: "ok" };
+  }
+
+  // ---- Handle APPOINTMENT_CONFIRMED options (clear session after) ----
+  if (screen.id === "APPOINTMENT_CONFIRMED" && screen.numbered) {
+    const nextScreen = screen.next?.[userNumber];
+
+    if (!nextScreen) {
+      await sendWhatsAppMessage(
+        message.from,
+        `❌ Invalid option. Please select a number from the options.\n\n` +
+          renderScreen(screen, session.answers),
+        config
+      );
+      return { statusCode: 200, body: "ok" };
+    }
+
+    // Clear answers and listings after booking
+    session = { currentScreen: nextScreen, answers: {} };
+    await saveUserSession(message.from, session);
+
+    const newScreen = FLOW[nextScreen];
+    await sendWhatsAppMessage(
+      message.from,
+      renderScreen(newScreen, {}),
       config
     );
 
