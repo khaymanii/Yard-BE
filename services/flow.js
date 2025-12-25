@@ -113,14 +113,14 @@ const FLOW = {
 
   SELECT_LISTING: {
     id: "SELECT_LISTING",
-    text: "🏡 Select a property to schedule inspection\n\nType the listing number (e.g., 1, 2, 3):",
+    text: "🏡 Select a property to schedule inspection\n\nReply with the number (e.g., 1 or 2 or 3):",
     inputType: "number",
     storeKey: "selected_listing_index",
   },
 
   APPOINTMENT_DATE: {
     id: "APPOINTMENT_DATE",
-    text: "📅 Choose your preferred inspection date\n\nType the number:",
+    text: "📅 Choose your preferred inspection date\n\nReply with the number (e.g., 1 or 2 or 3):",
     inputType: "dynamic_date",
     numbered: true,
     storeKey: "appointment_date",
@@ -128,7 +128,7 @@ const FLOW = {
 
   APPOINTMENT_TIME: {
     id: "APPOINTMENT_TIME",
-    text: "⏰ Select your preferred time\n\nType the number:",
+    text: "⏰ Select your preferred time\n\nReply with the number (e.g., 1 or 2 or 3):",
     options: ["1. 9:00 AM", "2. 11:00 AM", "3. 2:00 PM", "4. 4:00 PM"],
     numbered: true,
     storeKey: "appointment_time",
@@ -148,7 +148,7 @@ const FLOW = {
 
   CONTACT_INFO: {
     id: "CONTACT_INFO",
-    text: "👤 Please provide your full name:\n\n(Type your name)",
+    text: "👤 Please provide your full name:\n\n(Reply with your full name)",
     inputType: "text",
     storeKey: "contact_name",
   },
@@ -183,7 +183,7 @@ const FLOW = {
       `📅 ${answers.appointment_date_display}\n` +
       `⏰ ${answers.appointment_time}\n\n` +
       `You'll receive a confirmation SMS shortly.\n\n` +
-      `Type the number:`,
+      `Reply with the number:`,
     options: [
       "1. Search More Properties",
       "2. View My Appointments",
@@ -199,7 +199,7 @@ const FLOW = {
 
   VIEW_APPOINTMENTS: {
     id: "VIEW_APPOINTMENTS",
-    text: "📋 Your Scheduled Appointments\n\n(Loading your appointments...)\n\nType the number:",
+    text: "📋 Your Scheduled Appointments\n\n(Loading your appointments...)\n\nReply with the number (e.g., 1 or 2 or 3):",
     options: ["1. Schedule New Inspection", "2. Back to Menu"],
     numbered: true,
     next: {
@@ -227,7 +227,7 @@ const FLOW = {
     id: "THANK_YOU",
     text:
       "👋 Thank you for using Yard Property Search!\n\n" +
-      "Type 'menu' anytime to return to the main menu.\n\n" +
+      "Type *'menu'* anytime to return to the main menu.\n\n" +
       "Have a great day! 🏡",
     options: [],
   },
@@ -235,7 +235,7 @@ const FLOW = {
   // Error/Edge case screens
   SESSION_EXPIRED: {
     id: "SESSION_EXPIRED",
-    text: "⏱️ Your session has expired.\n\nLet's start fresh!\n\nType the number:",
+    text: "⏱️ Your session has expired.\n\nLet's start afresh!\n\nReply with the number (e.g., 1):",
     options: ["1. Start Over"],
     numbered: true,
     next: {
@@ -245,7 +245,7 @@ const FLOW = {
 
   INVALID_INPUT: {
     id: "INVALID_INPUT",
-    text: "❌ Invalid Input\n\nPlease enter a valid number from the options.\n\nType 'menu' to return to main menu.",
+    text: "❌ Invalid Input\n\nPlease enter a valid number from the options.\n\nType *'menu'* to return to main menu.",
     options: [],
   },
 };
