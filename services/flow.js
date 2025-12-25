@@ -3,24 +3,23 @@
 const FLOW = {
   WELCOME: {
     id: "WELCOME",
-    text: "👋 Welcome to Yard Property Search!\n\nI'll help you find your perfect home and schedule inspections.\n\nType the number of your choice:",
-    options: ["1. Start Search", "2. View My Appointments", "3. Help"],
+    text: "*👋 Welcome to Yard!*\n\nI'll help you find your perfect home and schedule inspections.\n\nReply with any number of your choice (e.g., 1 or 2):",
+    options: ["1. Start Search", "2. Help"],
     numbered: true,
     next: {
       1: "LOCATION",
-      2: "VIEW_APPOINTMENTS",
-      3: "HELP",
+      2: "HELP",
     },
   },
 
   HELP: {
     id: "HELP",
     text:
-      "🆘 Help & Commands\n\n" +
-      "• Type 'restart' - Start over\n" +
-      "• Type 'menu' - Main menu\n" +
-      "• Type 'cancel' - Cancel current action\n\n" +
-      "Need human assistance? Contact: infoyardhelp@gmail.com",
+      "*🆘 Help & Commands*\n\n" +
+      "• Type *'restart'* - Start over\n" +
+      "• Type *'menu'* - Main menu\n" +
+      "• Type *'cancel'* - Cancel current action\n\n" +
+      "Need human assistance? Contact: *infoyardhelp@gmail.com*",
     options: ["1. Back to Menu"],
     numbered: true,
     next: {
@@ -30,8 +29,8 @@ const FLOW = {
 
   LOCATION: {
     id: "LOCATION",
-    text: "📍 Where would you like to search?\n\nType the number:",
-    options: ["1. Lagos", "2. Abuja", "3. Port Harcourt", "4. Ibadan"],
+    text: "*📍 Where would you like to search?*\n\nReply with any number of your choice (e.g., 1 or 2 or 3):",
+    options: ["1. Lagos", "2. Abuja", "3. Rivers", "4. Oyo", "5. Kano"],
     numbered: true,
     storeKey: "location",
     next: {
@@ -44,14 +43,15 @@ const FLOW = {
     valueMap: {
       1: "Lagos",
       2: "Abuja",
-      3: "Port Harcourt",
-      4: "Ibadan",
+      3: "Rivers",
+      4: "Oyo",
+      5: "Kano",
     },
   },
 
   PROPERTY_TYPE: {
     id: "PROPERTY_TYPE",
-    text: "🏘️ What type of property?\n\nType the number:",
+    text: "*🏘️ What type of property?*\n\nReply with any number of your choice (e.g., 1 or 2 or 3):",
     options: ["1. House", "2. Apartment", "3. Villa", "4. Duplex"],
     numbered: true,
     storeKey: "property_type",
@@ -71,8 +71,8 @@ const FLOW = {
 
   BEDROOMS: {
     id: "BEDROOMS",
-    text: "🛏️ How many bedrooms?\n\nType the number:",
-    options: ["1. One", "2. Two", "3. Three", "4. Four", "5. Five+"],
+    text: "*🛏️ How many bedrooms?*\n\nReply with any number of your choice (e.g., 1 or 2 or 3):",
+    options: ["1. One", "2. Two", "3. Three", "4. Four", "5. Five"],
     numbered: true,
     storeKey: "bedrooms",
     next: {
@@ -95,11 +95,11 @@ const FLOW = {
     id: "REVIEW",
     text: (answers) => {
       return (
-        `📋 Review Your Search\n\n` +
-        `📍 Location: ${answers.location || "Not set"}\n` +
-        `🏘️ Property: ${answers.property_type || "Not set"}\n` +
-        `🛏️ Bedrooms: ${answers.bedrooms || "Not set"}\n\n` +
-        `Type the number:`
+        `*📋 Review Your Search*\n\n` +
+        `*📍 Location:* ${answers.location || "Not set"}\n` +
+        `*🏘️ Property:* ${answers.property_type || "Not set"}\n` +
+        `*🛏️ Bedrooms:* ${answers.bedrooms || "Not set"}\n\n` +
+        `Reply with any number of your choice (e.g., 1 or 2 or 3):`
       );
     },
     options: ["1. Search Now", "2. Modify Search", "3. Cancel"],
@@ -108,19 +108,18 @@ const FLOW = {
       2: "LOCATION",
       3: "WELCOME",
     },
-    // 1 is handled in webhook (search trigger)
   },
 
   SELECT_LISTING: {
     id: "SELECT_LISTING",
-    text: "🏡 Select a property to schedule inspection\n\nReply with the number (e.g., 1 or 2 or 3):",
+    text: "*🏡 Select a property to schedule inspection*\n\nReply with any number of your choice (e.g., 1 or 2 or 3):",
     inputType: "number",
     storeKey: "selected_listing_index",
   },
 
   APPOINTMENT_DATE: {
     id: "APPOINTMENT_DATE",
-    text: "📅 Choose your preferred inspection date\n\nReply with the number (e.g., 1 or 2 or 3):",
+    text: "*📅 Choose your preferred inspection date*\n\nReply with any number of your choice (e.g., 1 or 2 or 3):",
     inputType: "dynamic_date",
     numbered: true,
     storeKey: "appointment_date",
@@ -128,7 +127,7 @@ const FLOW = {
 
   APPOINTMENT_TIME: {
     id: "APPOINTMENT_TIME",
-    text: "⏰ Select your preferred time\n\nReply with the number (e.g., 1 or 2 or 3):",
+    text: "*⏰ Select your preferred time*\n\nReply with any number of your choice (e.g., 1 or 2 or 3):",
     options: ["1. 9:00 AM", "2. 11:00 AM", "3. 2:00 PM", "4. 4:00 PM"],
     numbered: true,
     storeKey: "appointment_time",
@@ -148,7 +147,7 @@ const FLOW = {
 
   CONTACT_INFO: {
     id: "CONTACT_INFO",
-    text: "👤 Please provide your full name:\n\n(Reply with your full name)",
+    text: "*👤 Please provide your full name:*\n\n(Reply with your full name)",
     inputType: "text",
     storeKey: "contact_name",
   },
@@ -156,7 +155,7 @@ const FLOW = {
   CONFIRM_APPOINTMENT: {
     id: "CONFIRM_APPOINTMENT",
     text: (answers) =>
-      `✅ Confirm Your Inspection Appointment\n\n` +
+      `*✅ Confirm Your Inspection Appointment*\n\n` +
       `🏡 Property: ${
         answers.selected_listing_address || "Selected property"
       }\n` +
@@ -171,35 +170,29 @@ const FLOW = {
     next: {
       2: "WELCOME",
     },
-    // 1 is handled in webhook (confirmation trigger)
   },
 
   APPOINTMENT_CONFIRMED: {
     id: "APPOINTMENT_CONFIRMED",
     text: (answers) =>
-      `🎉 Appointment Confirmed!\n\n` +
+      `*🎉 Appointment Confirmed!\n\n*` +
       `Your inspection has been scheduled:\n\n` +
       `📍 ${answers.selected_listing_address}\n` +
       `📅 ${answers.appointment_date_display}\n` +
       `⏰ ${answers.appointment_time}\n\n` +
       `You'll receive a confirmation SMS shortly.\n\n` +
-      `Reply with the number:`,
-    options: [
-      "1. Search More Properties",
-      "2. View My Appointments",
-      "3. Done",
-    ],
+      `Reply with any number of your choice:`,
+    options: ["1. Search More Properties", "2. Done"],
     numbered: true,
     next: {
       1: "LOCATION",
-      2: "VIEW_APPOINTMENTS",
-      3: "THANK_YOU",
+      2: "THANK_YOU",
     },
   },
 
   VIEW_APPOINTMENTS: {
     id: "VIEW_APPOINTMENTS",
-    text: "📋 Your Scheduled Appointments\n\n(Loading your appointments...)\n\nReply with the number (e.g., 1 or 2 or 3):",
+    text: "*📋 Your Scheduled Appointments*\n\n(Loading your appointments...)\n\nReply with any number of your choice (e.g., 1 or 2):",
     options: ["1. Schedule New Inspection", "2. Back to Menu"],
     numbered: true,
     next: {
@@ -211,9 +204,9 @@ const FLOW = {
   NO_LISTINGS_FOUND: {
     id: "NO_LISTINGS_FOUND",
     text:
-      "😔 No Properties Found\n\n" +
+      "*😔 No Properties Found*\n\n" +
       "We couldn't find any properties matching your criteria.\n\n" +
-      "Type the number:",
+      "Reply with any number of your choice (e.g., 1 or 2 or 3):",
     options: ["1. Modify Search", "2. Start New Search", "3. Main Menu"],
     numbered: true,
     next: {
@@ -226,7 +219,7 @@ const FLOW = {
   THANK_YOU: {
     id: "THANK_YOU",
     text:
-      "👋 Thank you for using Yard Property Search!\n\n" +
+      "*👋 Thank you for using Yard!*\n\n" +
       "Type *'menu'* anytime to return to the main menu.\n\n" +
       "Have a great day! 🏡",
     options: [],
