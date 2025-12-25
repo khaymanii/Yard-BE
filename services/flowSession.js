@@ -2,6 +2,7 @@ const {
   DynamoDBClient,
   GetItemCommand,
   PutItemCommand,
+  DeleteItemCommand,
 } = require("@aws-sdk/client-dynamodb");
 
 const dynamoClient = new DynamoDBClient({
@@ -16,45 +17,71 @@ function cleanObject(obj = {}) {
 }
 
 async function getUserSession(userId) {
-  const res = await dynamoClient.send(
-    new GetItemCommand({
-      TableName: "UserFlowSessions",
-      Key: { userId: { S: userId } },
-    })
-  );
+  try {
+    const res = await dynamoClient.send(
+      new GetItemCommand({
+        TableName: "UserFlowSessions",
+        Key: { userId: { S: userId } },
+      })
+    );
 
-  if (!res.Item) return null;
+    if (!res.Item) return null;
 
-  return {
-    currentScreen: res.Item.currentScreen.S,
-    answers: JSON.parse(res.Item.answers.S || "{}"),
-    listings: res.Item.listings?.S
-      ? JSON.parse(res.Item.listings.S)
-      : undefined, // ← Load listings
-  };
+    return {
+      currentScreen: res.Item.currentScreen?.S || "WELCOME",
+      answers: res.Item.answers?.S ? JSON.parse(res.Item.answers.S) : {},
+      listings: res.Item.listings?.S
+        ? JSON.parse(res.Item.listings.S)
+        : undefined,
+    };
+  } catch (error) {
+    console.error("Error getting user session:", error);
+    return null;
+  }
 }
 
 async function saveUserSession(userId, session) {
-  const cleanAnswers = cleanObject(session.answers);
+  try {
+    // If session is null, delete the session
+    if (!session) {
+      await dynamoClient.send(
+        new DeleteItemCommand({
+          TableName: "UserFlowSessions",
+          Key: { userId: { S: userId } },
+        })
+      );
+      return;
+    }
 
-  const item = {
-    userId: { S: userId },
-    currentScreen: { S: session.currentScreen },
-    answers: { S: JSON.stringify(cleanAnswers) },
-    timestamp: { S: new Date().toISOString() },
-  };
+    const cleanAnswers = cleanObject(session.answers || {});
 
-  // ✅ Save listings if they exist
-  if (session.listings && session.listings.length > 0) {
-    item.listings = { S: JSON.stringify(session.listings) };
+    const item = {
+      userId: { S: userId },
+      currentScreen: { S: session.currentScreen || "WELCOME" },
+      answers: { S: JSON.stringify(cleanAnswers) },
+      timestamp: { S: new Date().toISOString() },
+      ttl: { N: String(Math.floor(Date.now() / 1000) + 86400) }, // 24h expiry
+    };
+
+    // ✅ Save listings if they exist
+    if (
+      session.listings &&
+      Array.isArray(session.listings) &&
+      session.listings.length > 0
+    ) {
+      item.listings = { S: JSON.stringify(session.listings) };
+    }
+
+    await dynamoClient.send(
+      new PutItemCommand({
+        TableName: "UserFlowSessions",
+        Item: item,
+      })
+    );
+  } catch (error) {
+    console.error("Error saving user session:", error);
+    throw error;
   }
-
-  await dynamoClient.send(
-    new PutItemCommand({
-      TableName: "UserFlowSessions",
-      Item: item,
-    })
-  );
 }
 
 module.exports = {

@@ -1,45 +1,79 @@
 // services/flow.js
 
 const FLOW = {
-  RECOMMEND: {
-    id: "RECOMMEND",
-    text: "*Looking for your next home?* 🏠\nAnswer a few questions and I'll show you matching homes.",
-    options: ["Start"],
-    next: { start: "LOCATION" },
-    inputType: "command",
-    storeKey: null,
+  WELCOME: {
+    id: "WELCOME",
+    text: "👋 Welcome to Yard Property Search!\n\nI'll help you find your perfect home and schedule inspections.\n\nType the number of your choice:",
+    options: ["1. Start Search", "2. View My Appointments", "3. Help"],
+    numbered: true,
+    next: {
+      1: "LOCATION",
+      2: "VIEW_APPOINTMENTS",
+      3: "HELP",
+    },
+  },
+
+  HELP: {
+    id: "HELP",
+    text:
+      "🆘 Help & Commands\n\n" +
+      "• Type 'restart' - Start over\n" +
+      "• Type 'menu' - Main menu\n" +
+      "• Type 'cancel' - Cancel current action\n\n" +
+      "Need human assistance? Contact: support@yard.com",
+    options: ["1. Back to Menu"],
+    numbered: true,
+    next: {
+      1: "WELCOME",
+    },
   },
 
   LOCATION: {
     id: "LOCATION",
-    text: "*Hello there!* 👋\n\nPick your preferred location:",
-    options: ["Lagos", "Abuja", "Paris", "London"],
+    text: "📍 Where would you like to search?\n\nType the number:",
+    options: ["1. Lagos", "2. Abuja", "3. Port Harcourt", "4. Ibadan"],
+    numbered: true,
     storeKey: "location",
     next: {
-      lagos: "PROPERTY_TYPE",
-      abuja: "PROPERTY_TYPE",
-      paris: "PROPERTY_TYPE",
-      london: "PROPERTY_TYPE",
+      1: "PROPERTY_TYPE",
+      2: "PROPERTY_TYPE",
+      3: "PROPERTY_TYPE",
+      4: "PROPERTY_TYPE",
+    },
+    // Map numbers back to actual values
+    valueMap: {
+      1: "Lagos",
+      2: "Abuja",
+      3: "Port Harcourt",
+      4: "Ibadan",
     },
   },
 
   PROPERTY_TYPE: {
     id: "PROPERTY_TYPE",
-    text: "*Choose property type:*",
-    options: ["House", "Apartment", "Villa", "Duplex"],
+    text: "🏘️ What type of property?\n\nType the number:",
+    options: ["1. House", "2. Apartment", "3. Villa", "4. Duplex"],
+    numbered: true,
     storeKey: "property_type",
     next: {
-      house: "BEDROOMS",
-      apartment: "BEDROOMS",
-      villa: "BEDROOMS",
-      duplex: "BEDROOMS",
+      1: "BEDROOMS",
+      2: "BEDROOMS",
+      3: "BEDROOMS",
+      4: "BEDROOMS",
+    },
+    valueMap: {
+      1: "House",
+      2: "Apartment",
+      3: "Villa",
+      4: "Duplex",
     },
   },
 
   BEDROOMS: {
     id: "BEDROOMS",
-    text: "*How many bedrooms?*",
-    options: ["1", "2", "3", "4", "5"],
+    text: "🛏️ How many bedrooms?\n\nType the number:",
+    options: ["1. One", "2. Two", "3. Three", "4. Four", "5. Five+"],
+    numbered: true,
     storeKey: "bedrooms",
     next: {
       1: "REVIEW",
@@ -48,54 +82,73 @@ const FLOW = {
       4: "REVIEW",
       5: "REVIEW",
     },
+    valueMap: {
+      1: 1,
+      2: 2,
+      3: 3,
+      4: 4,
+      5: 5,
+    },
   },
 
   REVIEW: {
     id: "REVIEW",
-    text: (answers) =>
-      `*Please review your search details:*\n` +
-      `\n` +
-      `*Location:* ${answers.location}\n` +
-      `*Property Type:* ${answers.property_type}\n` +
-      `*Bedrooms:* ${answers.bedrooms}`,
-    options: ["Submit"],
+    text: (answers) => {
+      return (
+        `📋 Review Your Search\n\n` +
+        `📍 Location: ${answers.location || "Not set"}\n` +
+        `🏘️ Property: ${answers.property_type || "Not set"}\n` +
+        `🛏️ Bedrooms: ${answers.bedrooms || "Not set"}\n\n` +
+        `Type the number:`
+      );
+    },
+    options: ["1. Search Now", "2. Modify Search", "3. Cancel"],
+    numbered: true,
+    next: {
+      2: "LOCATION",
+      3: "WELCOME",
+    },
+    // 1 is handled in webhook (search trigger)
   },
 
   SELECT_LISTING: {
     id: "SELECT_LISTING",
-    text:
-      "*Select a property for inspection* 🏡\n\n" +
-      "_Reply with the listing number (e.g., 1, 2, 3)_",
-    options: [],
+    text: "🏡 Select a property to schedule inspection\n\nType the listing number (e.g., 1, 2, 3):",
     inputType: "number",
     storeKey: "selected_listing_index",
   },
 
   APPOINTMENT_DATE: {
     id: "APPOINTMENT_DATE",
-    text: "*Great choice!* 🏡\n\nWhen would you like to schedule your inspection?\n\nPlease choose a date:",
-    options: [],
-    inputType: "date",
+    text: "📅 Choose your preferred inspection date\n\nType the number:",
+    inputType: "dynamic_date",
+    numbered: true,
     storeKey: "appointment_date",
   },
 
   APPOINTMENT_TIME: {
     id: "APPOINTMENT_TIME",
-    text: "*What time works best for you?*",
-    options: ["9:00 AM", "11:00 AM", "2:00 PM", "4:00 PM"],
+    text: "⏰ Select your preferred time\n\nType the number:",
+    options: ["1. 9:00 AM", "2. 11:00 AM", "3. 2:00 PM", "4. 4:00 PM"],
+    numbered: true,
     storeKey: "appointment_time",
     next: {
-      "9:00 am": "CONTACT_INFO",
-      "11:00 am": "CONTACT_INFO",
-      "2:00 pm": "CONTACT_INFO",
-      "4:00 pm": "CONTACT_INFO",
+      1: "CONTACT_INFO",
+      2: "CONTACT_INFO",
+      3: "CONTACT_INFO",
+      4: "CONTACT_INFO",
+    },
+    valueMap: {
+      1: "9:00 AM",
+      2: "11:00 AM",
+      3: "2:00 PM",
+      4: "4:00 PM",
     },
   },
 
   CONTACT_INFO: {
     id: "CONTACT_INFO",
-    text: "*Almost done!* ✍️\n\n_Please provide your full name:_",
-    options: [],
+    text: "👤 Please provide your full name:\n\n(Type your name)",
     inputType: "text",
     storeKey: "contact_name",
   },
@@ -103,39 +156,96 @@ const FLOW = {
   CONFIRM_APPOINTMENT: {
     id: "CONFIRM_APPOINTMENT",
     text: (answers) =>
-      `*Please confirm your inspection appointment:*\n\n` +
-      `🏠 *Property:* ${
+      `✅ Confirm Your Inspection Appointment\n\n` +
+      `🏡 Property: ${
         answers.selected_listing_address || "Selected property"
       }\n` +
-      `📅 *Date:* ${
+      `📅 Date: ${
         answers.appointment_date_display || answers.appointment_date
       }\n` +
-      `⏰ *Time:* ${answers.appointment_time}\n` +
-      `👤 *Name:* ${answers.contact_name}\n\n` +
-      "_Is this correct?_",
-
-    options: ["Confirm", "Cancel"],
+      `⏰ Time: ${answers.appointment_time}\n` +
+      `👤 Name: ${answers.contact_name}\n\n` +
+      `Type the number:`,
+    options: ["1. Confirm & Book", "2. Cancel"],
+    numbered: true,
     next: {
-      cancel: "LOCATION",
+      2: "WELCOME",
     },
+    // 1 is handled in webhook (confirmation trigger)
   },
 
   APPOINTMENT_CONFIRMED: {
     id: "APPOINTMENT_CONFIRMED",
-    text:
-      "*🎉 Appointment Confirmed!*\n\n" +
-      "_You’ll receive a confirmation message shortly._\n\n" +
-      "*Would you like to search for more properties?*",
-    options: ["Yes", "No"],
+    text: (answers) =>
+      `🎉 Appointment Confirmed!\n\n` +
+      `Your inspection has been scheduled:\n\n` +
+      `📍 ${answers.selected_listing_address}\n` +
+      `📅 ${answers.appointment_date_display}\n` +
+      `⏰ ${answers.appointment_time}\n\n` +
+      `You'll receive a confirmation SMS shortly.\n\n` +
+      `Type the number:`,
+    options: [
+      "1. Search More Properties",
+      "2. View My Appointments",
+      "3. Done",
+    ],
+    numbered: true,
     next: {
-      yes: "LOCATION",
-      no: "THANK_YOU",
+      1: "LOCATION",
+      2: "VIEW_APPOINTMENTS",
+      3: "THANK_YOU",
+    },
+  },
+
+  VIEW_APPOINTMENTS: {
+    id: "VIEW_APPOINTMENTS",
+    text: "📋 Your Scheduled Appointments\n\n(Loading your appointments...)\n\nType the number:",
+    options: ["1. Schedule New Inspection", "2. Back to Menu"],
+    numbered: true,
+    next: {
+      1: "LOCATION",
+      2: "WELCOME",
+    },
+  },
+
+  NO_LISTINGS_FOUND: {
+    id: "NO_LISTINGS_FOUND",
+    text:
+      "😔 No Properties Found\n\n" +
+      "We couldn't find any properties matching your criteria.\n\n" +
+      "Type the number:",
+    options: ["1. Modify Search", "2. Start New Search", "3. Main Menu"],
+    numbered: true,
+    next: {
+      1: "LOCATION",
+      2: "LOCATION",
+      3: "WELCOME",
     },
   },
 
   THANK_YOU: {
     id: "THANK_YOU",
-    text: "Thank you for using Yard! Feel free to return anytime. 👋",
+    text:
+      "👋 Thank you for using Yard Property Search!\n\n" +
+      "Type 'menu' anytime to return to the main menu.\n\n" +
+      "Have a great day! 🏡",
+    options: [],
+  },
+
+  // Error/Edge case screens
+  SESSION_EXPIRED: {
+    id: "SESSION_EXPIRED",
+    text: "⏱️ Your session has expired.\n\nLet's start fresh!\n\nType the number:",
+    options: ["1. Start Over"],
+    numbered: true,
+    next: {
+      1: "WELCOME",
+    },
+  },
+
+  INVALID_INPUT: {
+    id: "INVALID_INPUT",
+    text: "❌ Invalid Input\n\nPlease enter a valid number from the options.\n\nType 'menu' to return to main menu.",
     options: [],
   },
 };

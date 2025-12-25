@@ -25,11 +25,7 @@ function renderScreen(screen, answers) {
     typeof screen.text === "function" ? screen.text(answers) : screen.text;
   if (!screen.options || screen.options.length === 0) return text;
 
-  return (
-    text +
-    "\n\nReply with one option:\n" +
-    screen.options.map((o) => `- ${o}`).join("\n")
-  );
+  return text + "\n\n" + screen.options.join("\n");
 }
 
 function getNextSevenDays() {
@@ -45,7 +41,7 @@ function getNextSevenDays() {
       day: "numeric",
     });
     const iso = date.toISOString().split("T")[0];
-    days.push({ display: formatted, iso });
+    days.push({ display: formatted, iso, number: i });
   }
 
   return days;
@@ -75,44 +71,65 @@ async function webhookHandler(event, config) {
   await markMessageProcessed(message.id);
 
   const userText = message.text.body.trim();
-  const normalizedInput = userText.toLowerCase();
+  const userNumber = parseInt(userText);
 
   // ---- Load session ----
   let session = await getUserSession(message.from);
 
   console.log(
-    "Current session:",
+    "Session:",
     JSON.stringify({
-      currentScreen: session?.currentScreen,
+      screen: session?.currentScreen,
       hasListings: !!session?.listings,
       listingsCount: session?.listings?.length,
+      userInput: userText,
     })
   );
 
-  // ---- Manual restart command ----
-  if (normalizedInput === "restart" || normalizedInput === "reset") {
-    session = { currentScreen: "LOCATION", answers: {} };
+  // ---- Global commands (work anywhere) ----
+  if (userText.toLowerCase() === "menu") {
+    session = { currentScreen: "WELCOME", answers: {} };
     await saveUserSession(message.from, session);
     await sendWhatsAppMessage(
       message.from,
-      "Session restarted! " + renderScreen(FLOW.LOCATION, {}),
+      renderScreen(FLOW.WELCOME, {}),
       config
     );
     return { statusCode: 200, body: "ok" };
   }
 
-  // ---- Start flow ONLY if no session exists ----
   if (
-    !session &&
-    (isGreeting(normalizedInput) || normalizedInput === "start")
+    userText.toLowerCase() === "restart" ||
+    userText.toLowerCase() === "reset"
   ) {
-    session = { currentScreen: "LOCATION", answers: {} };
+    session = { currentScreen: "WELCOME", answers: {} };
     await saveUserSession(message.from, session);
-
-    const screen = FLOW.LOCATION;
     await sendWhatsAppMessage(
       message.from,
-      renderScreen(screen, session.answers),
+      "🔄 Restarted!\n\n" + renderScreen(FLOW.WELCOME, {}),
+      config
+    );
+    return { statusCode: 200, body: "ok" };
+  }
+
+  if (userText.toLowerCase() === "cancel") {
+    session = { currentScreen: "WELCOME", answers: {} };
+    await saveUserSession(message.from, session);
+    await sendWhatsAppMessage(
+      message.from,
+      "❌ Cancelled.\n\n" + renderScreen(FLOW.WELCOME, {}),
+      config
+    );
+    return { statusCode: 200, body: "ok" };
+  }
+
+  // ---- Start flow if no session exists ----
+  if (!session && isGreeting(userText.toLowerCase())) {
+    session = { currentScreen: "WELCOME", answers: {} };
+    await saveUserSession(message.from, session);
+    await sendWhatsAppMessage(
+      message.from,
+      renderScreen(FLOW.WELCOME, {}),
       config
     );
     return { statusCode: 200, body: "ok" };
@@ -120,100 +137,92 @@ async function webhookHandler(event, config) {
 
   // ---- Safety fallback if no session ----
   if (!session) {
-    session = { currentScreen: "LOCATION", answers: {} };
+    session = { currentScreen: "WELCOME", answers: {} };
     await saveUserSession(message.from, session);
     await sendWhatsAppMessage(
       message.from,
-      renderScreen(FLOW.LOCATION, session.answers),
+      renderScreen(FLOW.WELCOME, {}),
       config
     );
     return { statusCode: 200, body: "ok" };
   }
 
   let screen = FLOW[session.currentScreen];
+
+  // ---- Handle missing screen (corruption) ----
   if (!screen) {
-    session = { currentScreen: "LOCATION", answers: {} };
+    session = { currentScreen: "SESSION_EXPIRED", answers: {} };
     await saveUserSession(message.from, session);
     await sendWhatsAppMessage(
       message.from,
-      renderScreen(FLOW.LOCATION, session.answers),
+      renderScreen(FLOW.SESSION_EXPIRED, {}),
       config
     );
     return { statusCode: 200, body: "ok" };
   }
 
-  // ---- Handle free text inputs (name) ----
-  if (screen.id === "CONTACT_INFO") {
-    session.answers.contact_name = userText;
-    session.currentScreen = "CONFIRM_APPOINTMENT";
-    await saveUserSession(message.from, session);
-
-    const nextScreen = FLOW.CONFIRM_APPOINTMENT;
-    await sendWhatsAppMessage(
-      message.from,
-      renderScreen(nextScreen, session.answers),
-      config
-    );
-    return { statusCode: 200, body: "ok" };
-  }
-
-  // ---- Handle listing selection (number input) ----
-  if (screen.id === "SELECT_LISTING") {
-    // Safety check: if no listings in session, restart flow
-    if (!session.listings || session.listings.length === 0) {
-      console.log(
-        "SELECT_LISTING but no listings in session - restarting flow"
-      );
-      session = { currentScreen: "LOCATION", answers: {} };
-      await saveUserSession(message.from, session);
+  // ---- Handle free text input (name) ----
+  if (screen.inputType === "text") {
+    if (userText.length < 2) {
       await sendWhatsAppMessage(
         message.from,
-        "Session expired. Let's start over!\n\n" +
-          renderScreen(FLOW.LOCATION, {}),
+        "Please enter a valid name (at least 2 characters).",
         config
       );
       return { statusCode: 200, body: "ok" };
     }
 
-    const listingIndex = parseInt(userText) - 1;
+    session.answers[screen.storeKey] = userText;
+    session.currentScreen = "CONFIRM_APPOINTMENT";
+    await saveUserSession(message.from, session);
 
-    console.log("Listing selection - userText:", userText);
-    console.log("Listing selection - listingIndex:", listingIndex);
-    console.log(
-      "Listing selection - session.listings length:",
-      session.listings?.length
+    await sendWhatsAppMessage(
+      message.from,
+      renderScreen(FLOW.CONFIRM_APPOINTMENT, session.answers),
+      config
     );
+    return { statusCode: 200, body: "ok" };
+  }
+
+  // ---- Handle listing selection ----
+  if (screen.inputType === "number" && screen.id === "SELECT_LISTING") {
+    if (!session.listings || session.listings.length === 0) {
+      session = { currentScreen: "SESSION_EXPIRED", answers: {} };
+      await saveUserSession(message.from, session);
+      await sendWhatsAppMessage(
+        message.from,
+        renderScreen(FLOW.SESSION_EXPIRED, {}),
+        config
+      );
+      return { statusCode: 200, body: "ok" };
+    }
+
+    const listingIndex = userNumber - 1;
 
     if (
-      isNaN(listingIndex) ||
-      listingIndex < 0 ||
-      !session.listings ||
-      listingIndex >= session.listings.length
+      isNaN(userNumber) ||
+      userNumber < 1 ||
+      userNumber > session.listings.length
     ) {
       await sendWhatsAppMessage(
         message.from,
-        `Invalid selection. Please enter a number between 1 and ${
-          session.listings?.length || 0
-        }.`,
+        `❌ Invalid selection. Please enter a number between 1 and ${session.listings.length}.`,
         config
       );
       return { statusCode: 200, body: "ok" };
     }
 
     const selectedListing = session.listings[listingIndex];
-    console.log("Selected listing:", selectedListing);
-
     session.answers.selected_listing_index = listingIndex;
     session.answers.selected_listing_id = selectedListing.listingId;
     session.answers.selected_listing_address = selectedListing.address;
     session.currentScreen = "APPOINTMENT_DATE";
     await saveUserSession(message.from, session);
 
-    // Generate date options dynamically
     const dateOptions = getNextSevenDays();
     const nextScreen = {
       ...FLOW.APPOINTMENT_DATE,
-      options: dateOptions.map((d) => d.display),
+      options: dateOptions.map((d, i) => `${i + 1}. ${d.display}`),
     };
     await sendWhatsAppMessage(
       message.from,
@@ -224,36 +233,38 @@ async function webhookHandler(event, config) {
   }
 
   // ---- Handle dynamic date selection ----
-  if (screen.id === "APPOINTMENT_DATE") {
+  if (screen.inputType === "dynamic_date") {
     const dateOptions = getNextSevenDays();
-    const matchedDate = dateOptions.find(
-      (d) => d.display.toLowerCase() === normalizedInput
-    );
 
-    if (matchedDate) {
-      session.answers.appointment_date_display = matchedDate.display;
-      session.answers.appointment_date_iso = matchedDate.iso;
-      session.currentScreen = "APPOINTMENT_TIME";
-      await saveUserSession(message.from, session);
-
+    if (
+      isNaN(userNumber) ||
+      userNumber < 1 ||
+      userNumber > dateOptions.length
+    ) {
       await sendWhatsAppMessage(
         message.from,
-        renderScreen(FLOW.APPOINTMENT_TIME, session.answers),
-        config
-      );
-      return { statusCode: 200, body: "ok" };
-    } else {
-      await sendWhatsAppMessage(
-        message.from,
-        "Invalid date. Please select from the options provided.",
+        `❌ Invalid selection. Please enter a number between 1 and ${dateOptions.length}.`,
         config
       );
       return { statusCode: 200, body: "ok" };
     }
+
+    const selectedDate = dateOptions[userNumber - 1];
+    session.answers.appointment_date_display = selectedDate.display;
+    session.answers.appointment_date_iso = selectedDate.iso;
+    session.currentScreen = "APPOINTMENT_TIME";
+    await saveUserSession(message.from, session);
+
+    await sendWhatsAppMessage(
+      message.from,
+      renderScreen(FLOW.APPOINTMENT_TIME, session.answers),
+      config
+    );
+    return { statusCode: 200, body: "ok" };
   }
 
-  // ---- HANDLE SUBMIT: fetch listings & GPT formatting ----
-  if (screen.id === "REVIEW" && normalizedInput === "submit") {
+  // ---- Handle REVIEW screen (search trigger) ----
+  if (screen.id === "REVIEW" && userNumber === 1) {
     const intent = normalizeSearchParams({
       ...session.answers,
       is_search: true,
@@ -269,22 +280,23 @@ async function webhookHandler(event, config) {
     const listings = intent.location ? await getListingsFromDB(intent) : [];
 
     console.log(`Listings Found: ${listings.length}`);
-    if (listings.length > 0) {
-      console.log("Sample Listing:", JSON.stringify(listings[0]));
-    }
-
-    const userQuery = `Show me ${session.answers.bedrooms || "any"}-bedroom ${
-      session.answers.property_type || "property"
-    } in ${session.answers.location || "any location"}`;
-
-    const reply = await formatResponse(userQuery, listings, config.gptKey);
-    await sendWhatsAppMessage(message.from, reply, config);
-    await saveSearch(message.from, intent);
 
     if (listings.length > 0) {
+      const userQuery = `Show me ${session.answers.bedrooms || "any"}-bedroom ${
+        session.answers.property_type || "property"
+      } in ${session.answers.location || "any location"}`;
+
+      const reply = await formatResponse(userQuery, listings, config.gptKey);
+      await sendWhatsAppMessage(message.from, reply, config);
+      await saveSearch(message.from, intent);
+
       session.listings = listings;
       session.currentScreen = "SELECT_LISTING";
-      await saveUserSession(message.from, session);
+      await saveUserSession(message.from, {
+        currentScreen: session.currentScreen,
+        answers: session.answers,
+        listings: session.listings,
+      });
 
       await sendWhatsAppMessage(
         message.from,
@@ -292,17 +304,12 @@ async function webhookHandler(event, config) {
         config
       );
     } else {
-      session = { currentScreen: "LOCATION", answers: {} };
+      session.currentScreen = "NO_LISTINGS_FOUND";
       await saveUserSession(message.from, session);
 
       await sendWhatsAppMessage(
         message.from,
-        "No properties found matching your criteria. Let's try another search.",
-        config
-      );
-      await sendWhatsAppMessage(
-        message.from,
-        renderScreen(FLOW.LOCATION, {}),
+        renderScreen(FLOW.NO_LISTINGS_FOUND, {}),
         config
       );
     }
@@ -310,8 +317,8 @@ async function webhookHandler(event, config) {
     return { statusCode: 200, body: "ok" };
   }
 
-  // ---- HANDLE APPOINTMENT CONFIRMATION ----
-  if (screen.id === "CONFIRM_APPOINTMENT" && normalizedInput === "confirm") {
+  // ---- Handle CONFIRM_APPOINTMENT (booking trigger) ----
+  if (screen.id === "CONFIRM_APPOINTMENT" && userNumber === 1) {
     const appointmentData = {
       userId: message.from,
       listingId: session.answers.selected_listing_id,
@@ -326,6 +333,7 @@ async function webhookHandler(event, config) {
     await saveAppointment(appointmentData);
 
     session.currentScreen = "APPOINTMENT_CONFIRMED";
+    session.answers = {}; // Clear answers after booking
     await saveUserSession(message.from, session);
 
     await sendWhatsAppMessage(
@@ -337,64 +345,57 @@ async function webhookHandler(event, config) {
     return { statusCode: 200, body: "ok" };
   }
 
-  // ---- HANDLE POST-APPOINTMENT OPTIONS ----
-  if (screen.id === "APPOINTMENT_CONFIRMED") {
-    if (normalizedInput === "yes") {
-      session = { currentScreen: "LOCATION", answers: {} };
-      await saveUserSession(message.from, session);
+  // ---- Validate numbered input ----
+  if (screen.numbered) {
+    if (isNaN(userNumber)) {
       await sendWhatsAppMessage(
         message.from,
-        renderScreen(FLOW.LOCATION, {}),
+        "❌ Please enter a valid number.\n\n" +
+          renderScreen(screen, session.answers),
         config
       );
       return { statusCode: 200, body: "ok" };
     }
 
-    if (normalizedInput === "no") {
-      await sendWhatsAppMessage(message.from, FLOW.THANK_YOU.text, config);
-      await saveUserSession(message.from, null);
+    const nextScreen = screen.next?.[userNumber];
+
+    if (!nextScreen) {
+      await sendWhatsAppMessage(
+        message.from,
+        `❌ Invalid option. Please select a number from the options.\n\n` +
+          renderScreen(screen, session.answers),
+        config
+      );
       return { statusCode: 200, body: "ok" };
     }
-  }
 
-  // ---- Validate input for screens with options ----
-  const optionMap = {};
-  screen.options?.forEach((o) => (optionMap[o.toLowerCase()] = o));
+    // Save answer if screen has storeKey and valueMap
+    if (screen.storeKey && screen.valueMap) {
+      session.answers[screen.storeKey] = screen.valueMap[userNumber];
+    }
 
-  if (
-    screen.options &&
-    screen.options.length > 0 &&
-    !optionMap[normalizedInput]
-  ) {
+    // Move to next screen
+    session.currentScreen = nextScreen;
+    await saveUserSession(message.from, {
+      currentScreen: session.currentScreen,
+      answers: session.answers,
+      listings: session.listings,
+    });
+
+    const newScreen = FLOW[session.currentScreen];
     await sendWhatsAppMessage(
       message.from,
-      "Invalid option. " + renderScreen(screen, session.answers),
+      renderScreen(newScreen, session.answers),
       config
     );
+
     return { statusCode: 200, body: "ok" };
   }
 
-  const selectedOption = optionMap[normalizedInput]; // Use mapped value, not normalized
-
-  // ---- Save answer if applicable ----
-  if (screen.storeKey && selectedOption) {
-    session.answers[screen.storeKey] = selectedOption;
-  }
-
-  // ---- Move to next screen using normalized key ----
-  session.currentScreen = screen.next?.[normalizedInput] || screen.id;
-  await saveUserSession(message.from, {
-    currentScreen: session.currentScreen,
-    answers: session.answers,
-    listings: session.listings,
-  });
-
-  screen = FLOW[session.currentScreen];
-
-  // ---- Render next screen ----
+  // ---- Fallback for unhandled cases ----
   await sendWhatsAppMessage(
     message.from,
-    renderScreen(screen, session.answers),
+    "❌ Something went wrong. Type 'menu' to return to main menu.",
     config
   );
   return { statusCode: 200, body: "ok" };
